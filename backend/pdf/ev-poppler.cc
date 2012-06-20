@@ -2781,6 +2781,15 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 	gboolean reported_annot = FALSE;
 
 	switch (poppler_annot_get_annot_type (poppler_annot)) {
+		case POPPLER_ANNOT_HIGHLIGHT:
+		case POPPLER_ANNOT_UNDERLINE:
+		case POPPLER_ANNOT_SQUIGGLY:
+		case POPPLER_ANNOT_STRIKE_OUT:
+		{
+
+			ev_annot = ev_annotation_text_markup_new (page);
+		}
+			break;
 	        case POPPLER_ANNOT_TEXT: {
 			PopplerAnnotText *poppler_text;
 			EvAnnotationText *ev_annot_text;
@@ -2832,15 +2841,11 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		case POPPLER_ANNOT_3D:
 		case POPPLER_ANNOT_CARET:
 		case POPPLER_ANNOT_FREE_TEXT:
-		case POPPLER_ANNOT_HIGHLIGHT:
 		case POPPLER_ANNOT_LINE:
 		case POPPLER_ANNOT_SCREEN:
 		case POPPLER_ANNOT_SOUND:
 		case POPPLER_ANNOT_SQUARE:
-		case POPPLER_ANNOT_SQUIGGLY:
-		case POPPLER_ANNOT_STAMP:
-		case POPPLER_ANNOT_STRIKE_OUT:
-		case POPPLER_ANNOT_UNDERLINE: {
+		case POPPLER_ANNOT_STAMP: {
 			/* FIXME: These annotations are unimplemented, but they were already
 			 * reported in Evince Bugzilla with test case.  We add a special
 			 * warning to let the user know it is unimplemented, yet we do not
