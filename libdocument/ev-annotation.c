@@ -979,7 +979,7 @@ ev_annotation_text_set_property (GObject      *object,
 {
 	EvAnnotationText *annot = EV_ANNOTATION_TEXT (object);
 
-	if (prop_id < PROP_ATTACHMENT_ATTACHMENT) {
+	if (prop_id <= PROP_MARKUP_POPUP_IS_OPEN) {
 		ev_annotation_markup_set_property (object, prop_id, value, pspec);
 		return;
 	}
@@ -1004,7 +1004,7 @@ ev_annotation_text_get_property (GObject    *object,
 {
 	EvAnnotationText *annot = EV_ANNOTATION_TEXT (object);
 
-	if (prop_id < PROP_ATTACHMENT_ATTACHMENT) {
+	if (prop_id <= PROP_MARKUP_POPUP_IS_OPEN) {
 		ev_annotation_markup_get_property (object, prop_id, value, pspec);
 		return;
 	}
@@ -1161,7 +1161,7 @@ ev_annotation_attachment_set_property (GObject      *object,
 {
 	EvAnnotationAttachment *annot = EV_ANNOTATION_ATTACHMENT (object);
 
-	if (prop_id < PROP_ATTACHMENT_ATTACHMENT) {
+	if (prop_id <= PROP_MARKUP_POPUP_IS_OPEN) {
 		ev_annotation_markup_set_property (object, prop_id, value, pspec);
 		return;
 	}
@@ -1183,7 +1183,7 @@ ev_annotation_attachment_get_property (GObject    *object,
 {
 	EvAnnotationAttachment *annot = EV_ANNOTATION_ATTACHMENT (object);
 
-	if (prop_id < PROP_ATTACHMENT_ATTACHMENT) {
+	if (prop_id <= PROP_MARKUP_POPUP_IS_OPEN) {
 		ev_annotation_markup_get_property (object, prop_id, value, pspec);
 		return;
 	}
