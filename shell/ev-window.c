@@ -342,6 +342,8 @@ static void     ev_view_popup_cmd_save_image_as         (GtkAction        *actio
 							 EvWindow         *window);
 static void     ev_view_popup_cmd_copy_image            (GtkAction        *action,
 							 EvWindow         *window);
+static void     ev_view_popup_cmd_remove_annot          (GtkAction        *action,
+                                                         EvWindow         *window);
 static void     ev_view_popup_cmd_annot_properties      (GtkAction        *action,
 							 EvWindow         *window);
 static void	ev_attachment_popup_cmd_open_attachment (GtkAction        *action,
@@ -5244,6 +5246,13 @@ view_menu_annot_popup (EvWindow     *ev_window,
 					      "AnnotProperties");
 	gtk_action_set_visible (action, (annot != NULL && EV_IS_ANNOTATION_MARKUP (annot)));
 
+	action = gtk_action_group_get_action (ev_window->priv->view_popup_action_group,
+					      "AnnotRemove");
+	show_annot = ev_document_annotations_can_remove_annotation (EV_DOCUMENT_ANNOTATIONS (ev_window->priv->document));
+	
+	gtk_action_set_visible (action, (annot != NULL) && show_annot);
+	show_annot = FALSE;
+
 	if (annot && EV_IS_ANNOTATION_ATTACHMENT (annot)) {
 		EvAttachment *attachment;
 
@@ -6198,7 +6207,9 @@ static const GtkActionEntry view_popup_entries [] = {
 	{ "CopyImage", NULL, N_("Copy _Image"), NULL,
 	  NULL, G_CALLBACK (ev_view_popup_cmd_copy_image) },
 	{ "AnnotProperties", NULL, N_("Annotation Properties…"), NULL,
-	  NULL, G_CALLBACK (ev_view_popup_cmd_annot_properties) }
+	  NULL, G_CALLBACK (ev_view_popup_cmd_annot_properties) },
+	{ "AnnotRemove", NULL, N_("Remove Annotation"), NULL,
+	  NULL, G_CALLBACK (ev_view_popup_cmd_remove_annot) }
 };
 
 static const GtkActionEntry attachment_popup_entries [] = {
@@ -6912,6 +6923,20 @@ ev_view_popup_cmd_copy_image (GtkAction *action, EvWindow *window)
 	
 	gtk_clipboard_set_image (clipboard, pixbuf);
 	g_object_unref (pixbuf);
+}
+
+static void
+ev_view_popup_cmd_remove_annot (GtkAction *action,
+			       EvWindow  *window)
+{
+	guint page = ev_annotation_get_page_index (window->priv->annot);
+
+	ev_document_doc_mutex_lock ();
+        ev_document_annotations_remove_annotation (EV_DOCUMENT_ANNOTATIONS (window->priv->document),
+                                                         window->priv->annot);
+
+        ev_document_doc_mutex_unlock ();
+	ev_view_reload_page (EV_VIEW (window->priv->view), page, NULL);
 }
 
 static void
