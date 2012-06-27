@@ -58,8 +58,11 @@ typedef enum {
 	/* Attachment Annotations */
 	EV_ANNOTATIONS_SAVE_ATTACHMENT    = 1 << 8,
 
+	/* Text Markup Annotations */
+	EV_ANNOTATIONS_SAVE_TEXT_MARKUP_TYPE = 1 << 9,
+
 	/* Save all */
-	EV_ANNOTATIONS_SAVE_ALL           = (1 << 9) - 1
+	EV_ANNOTATIONS_SAVE_ALL           = (1 << 10) - 1
 } EvAnnotationsSaveMask;
 
 typedef struct _EvDocumentAnnotations          EvDocumentAnnotations;
@@ -79,6 +82,8 @@ struct _EvDocumentAnnotationsInterface
 	void           (* save_annotation)      (EvDocumentAnnotations *document_annots,
 						 EvAnnotation          *annot,
 						 EvAnnotationsSaveMask  mask);
+	void	       (* remove_annotation)    (EvDocumentAnnotations *document_annots,
+						 EvAnnotation          *annot);
 };
 
 GType          ev_document_annotations_get_type             (void) G_GNUC_CONST;
@@ -88,10 +93,14 @@ gboolean       ev_document_annotations_document_is_modified (EvDocumentAnnotatio
 void           ev_document_annotations_add_annotation       (EvDocumentAnnotations *document_annots,
 							     EvAnnotation          *annot,
 							     EvRectangle           *rect);
+void           ev_document_annotations_remove_annotation    (EvDocumentAnnotations *document_annots,
+                                                             EvAnnotation          *annot);
+
 void           ev_document_annotations_save_annotation      (EvDocumentAnnotations *document_annots,
 							     EvAnnotation          *annot,
 							     EvAnnotationsSaveMask  mask);
-gboolean       ev_document_annotations_can_add_annotation   (EvDocumentAnnotations *document_annots);
+gboolean       ev_document_annotations_can_add_annotation    (EvDocumentAnnotations *document_annots);
+gboolean       ev_document_annotations_can_remove_annotation (EvDocumentAnnotations *document_annots);
 
 G_END_DECLS
 
