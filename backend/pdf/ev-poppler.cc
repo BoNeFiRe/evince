@@ -2781,6 +2781,8 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 	gboolean reported_annot = FALSE;
 
 	switch (poppler_annot_get_annot_type (poppler_annot)) {
+		case POPPLER_ANNOT_SQUARE:
+		case POPPLER_ANNOT_INK:
 		case POPPLER_ANNOT_HIGHLIGHT:
 		case POPPLER_ANNOT_UNDERLINE:
 		case POPPLER_ANNOT_SQUIGGLY:
@@ -2844,7 +2846,6 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		case POPPLER_ANNOT_LINE:
 		case POPPLER_ANNOT_SCREEN:
 		case POPPLER_ANNOT_SOUND:
-		case POPPLER_ANNOT_SQUARE:
 		case POPPLER_ANNOT_STAMP: {
 			/* FIXME: These annotations are unimplemented, but they were already
 			 * reported in Evince Bugzilla with test case.  We add a special
