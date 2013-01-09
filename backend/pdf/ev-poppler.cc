@@ -2779,17 +2779,24 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 	EvAnnotation *ev_annot = NULL;
 	const gchar  *unimplemented_annot = NULL;
 	gboolean reported_annot = FALSE;
+	const gchar  *contents = NULL;
 
 	switch (poppler_annot_get_annot_type (poppler_annot)) {
 		case POPPLER_ANNOT_SQUARE:
 		case POPPLER_ANNOT_INK:
+		case POPPLER_ANNOT_FREE_TEXT:
+		{
+			ev_annot = ev_annotation_text_markup_new (page);
+		}
+			break;
 		case POPPLER_ANNOT_HIGHLIGHT:
 		case POPPLER_ANNOT_UNDERLINE:
 		case POPPLER_ANNOT_SQUIGGLY:
 		case POPPLER_ANNOT_STRIKE_OUT:
 		{
-
 			ev_annot = ev_annotation_text_markup_new (page);
+			g_object_set (ev_annot, "label", "Strike", NULL);
+			//g_print("=> %s", poppler_annot_get_name (poppler_annot));
 		}
 			break;
 	        case POPPLER_ANNOT_TEXT: {
@@ -2842,7 +2849,6 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			break;
 		case POPPLER_ANNOT_3D:
 		case POPPLER_ANNOT_CARET:
-		case POPPLER_ANNOT_FREE_TEXT:
 		case POPPLER_ANNOT_LINE:
 		case POPPLER_ANNOT_SCREEN:
 		case POPPLER_ANNOT_SOUND:
@@ -2893,6 +2899,7 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		contents = poppler_annot_get_contents (poppler_annot);
 		if (contents) {
 			ev_annotation_set_contents (ev_annot, contents);
+			g_print("Content: %s", contents);
 			g_free (contents);
 		}
 
@@ -2912,7 +2919,7 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 
 		poppler_annot_color_to_gdk_color (poppler_annot, &color);
 		ev_annotation_set_color (ev_annot, &color);
-
+		
 		if (POPPLER_IS_ANNOT_MARKUP (poppler_annot)) {
 			PopplerAnnotMarkup *markup;
 			gchar *label;
@@ -2949,6 +2956,7 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			label = poppler_annot_markup_get_label (markup);
 			opacity = poppler_annot_markup_get_opacity (markup);
 
+			g_print("Markup: %s\n", label);
 			g_object_set (ev_annot,
 				      "label", label,
 				      "opacity", opacity,
