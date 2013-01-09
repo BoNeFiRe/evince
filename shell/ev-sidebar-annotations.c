@@ -35,6 +35,7 @@ enum {
 };
 
 enum {
+        COLUMN_PAGE,
 	COLUMN_MARKUP,
 	COLUMN_ICON,
 	COLUMN_ANNOT_MAPPING,
@@ -98,6 +99,7 @@ ev_sidebar_annotations_create_simple_model (const gchar *message)
 
 	/* Creates a fake model to indicate that we're loading */
 	retval = (GtkTreeModel *)gtk_list_store_new (N_COLUMNS,
+                                                     G_TYPE_ULONG,
 						     G_TYPE_STRING,
 						     GDK_TYPE_PIXBUF,
 						     G_TYPE_POINTER);
@@ -133,10 +135,20 @@ ev_sidebar_annotations_add_annots_list (EvSidebarAnnotations *ev_annots)
 	g_object_unref (loading_model);
 
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (ev_annots->priv->tree_view),
-					   FALSE);
+					   TRUE);
 	selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (ev_annots->priv->tree_view));
 	gtk_tree_selection_set_mode (selection, GTK_SELECTION_NONE);
 
+	column = gtk_tree_view_column_new ();
+
+        renderer = gtk_cell_renderer_text_new ();
+	gtk_tree_view_column_pack_start (column, renderer, FALSE);
+            gtk_tree_view_column_set_attributes (column, renderer,
+					     "text", COLUMN_PAGE,
+					     NULL);
+	gtk_tree_view_append_column (GTK_TREE_VIEW (ev_annots->priv->tree_view),
+				     column);
+    
 	column = gtk_tree_view_column_new ();
 
 	renderer = gtk_cell_renderer_pixbuf_new ();
@@ -348,7 +360,7 @@ job_finished_callback (EvJobAnnots          *job,
 		       EvSidebarAnnotations *sidebar_annots)
 {
 	EvSidebarAnnotationsPrivate *priv;
-	GtkTreeStore *model;
+	GtkListStore *model;
 	GtkTreeSelection *selection;
 	GList *l;
 	GdkPixbuf *text_icon = NULL;
@@ -356,6 +368,16 @@ job_finished_callback (EvJobAnnots          *job,
 
 	priv = sidebar_annots->priv;
 
+        static char *data[] = {
+            /*
+            { EV_ANNOTATION_TYPE_UNKNOWN, "Unknown" },
+            { EV_ANNOTATION_TYPE_TEXT, "Text" },
+            { EV_ANNOTATION_TYPE_ATTACHMENT, "Attachment" },
+            { EV_ANNOTATION_TYPE_TEXT_MARKUP, "Text Markup"},
+            */
+            "Unknown", "Text", "Attachment", "Text Markup"
+        };
+                
 	if (!job->annots) {
 		GtkTreeModel *list;
 
@@ -378,7 +400,8 @@ job_finished_callback (EvJobAnnots          *job,
 					  sidebar_annots);
 	}
 
-	model = gtk_tree_store_new (N_COLUMNS,
+	model = gtk_list_store_new (N_COLUMNS,
+                                    G_TYPE_ULONG,
 				    G_TYPE_STRING,
 				    GDK_TYPE_PIXBUF,
 				    G_TYPE_POINTER);
@@ -389,15 +412,17 @@ job_finished_callback (EvJobAnnots          *job,
 		gchar         *page_label;
 		GtkTreeIter    iter;
 		gboolean       found = FALSE;
+                unsigned long page_num;
 
 		mapping_list = (EvMappingList *)l->data;
-		page_label = g_strdup_printf (_("Page %d"),
+		page_label = g_strdup_printf ("%d",
 					      ev_mapping_list_get_page (mapping_list) + 1);
-		gtk_tree_store_append (model, &iter, NULL);
+                page_num = ev_mapping_list_get_page (mapping_list) + 1;
+		/* gtk_tree_store_append (model, &iter, NULL);
 		gtk_tree_store_set (model, &iter,
 				    COLUMN_MARKUP, page_label,
 				    -1);
-		g_free (page_label);
+		g_free (page_label); */
 
 		for (ll = ev_mapping_list_get_list (mapping_list); ll; ll = g_list_next (ll)) {
 			EvAnnotation *annot;
@@ -406,7 +431,8 @@ job_finished_callback (EvJobAnnots          *job,
 			gchar        *markup;
 			GtkTreeIter   child_iter;
 			GdkPixbuf    *pixbuf = NULL;
-
+                        EvAnnotationType evtype;
+                    
 			annot = ((EvMapping *)(ll->data))->data;
 			if (!EV_IS_ANNOTATION_MARKUP (annot))
 				continue;
@@ -414,13 +440,16 @@ job_finished_callback (EvJobAnnots          *job,
 			label = ev_annotation_markup_get_label (EV_ANNOTATION_MARKUP (annot));
 			modified = ev_annotation_get_modified (annot);
 			if (modified) {
-				markup = g_strdup_printf ("<span weight=\"bold\">%s</span>\n%s",
+				markup = g_strdup_printf ("%s - %s",
 							  label, modified);
 			} else {
-				markup = g_strdup_printf ("<span weight=\"bold\">%s</span>", label);
+				markup = g_strdup_printf ("%s", label);
 			}
 
-			if (EV_IS_ANNOTATION_TEXT (annot)) {
+                        evtype = ev_annotation_get_annotation_type (annot);
+                        // g_print("Type: %d => %s\n", evtype, data[evtype]);
+
+			if (EV_IS_ANNOTATION_TEXT_MARKUP (annot)) {
 				if (!text_icon) {
 					/* FIXME: use a better icon than EDIT */
 					text_icon = gtk_widget_render_icon_pixbuf (priv->tree_view,
@@ -437,18 +466,27 @@ job_finished_callback (EvJobAnnots          *job,
 				pixbuf = attachment_icon;
 			}
 
-			gtk_tree_store_append (model, &child_iter, &iter);
+			/* gtk_tree_store_append (model, &child_iter, &iter);
 			gtk_tree_store_set (model, &child_iter,
 					    COLUMN_MARKUP, markup,
 					    COLUMN_ICON, pixbuf,
 					    COLUMN_ANNOT_MAPPING, ll->data,
+					    -1); */
+			gtk_list_store_append (model, &iter);
+			gtk_list_store_set (model, &iter,
+                                            COLUMN_PAGE, page_num,
+					    COLUMN_MARKUP, markup,
+					    COLUMN_ICON, pixbuf,
+					    COLUMN_ANNOT_MAPPING, ll->data,
 					    -1);
-			g_free (markup);
+                        g_free (markup);
 			found = TRUE;
 		}
 
+                g_free (page_label);
+
 		if (!found)
-			gtk_tree_store_remove (model, &iter);
+			gtk_list_store_remove (model, &iter);
 	}
 
 	gtk_tree_view_set_model (GTK_TREE_VIEW (priv->tree_view),
