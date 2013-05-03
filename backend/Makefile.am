@@ -7,7 +7,13 @@ SUBDIRS += pdf
 endif
 
 if ENABLE_PS 
+if WITH_PS_BACKEND
 SUBDIRS += ps
+endif
+
+if WITH_PSPDF_BACKEND
+SUBDIRS += pspdf
+endif
 endif
 
 if ENABLE_DJVU

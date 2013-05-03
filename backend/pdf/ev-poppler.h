@@ -19,13 +19,16 @@
 #ifndef __PDF_DOCUMENT_H__
 #define __PDF_DOCUMENT_H__
 
+#include "config.h"
 #include "ev-document.h"
+#include "ev-file-exporter.h"
 
 G_BEGIN_DECLS
 
 #define PDF_TYPE_DOCUMENT             (pdf_document_get_type ())
 #define PDF_DOCUMENT(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), PDF_TYPE_DOCUMENT, PdfDocument))
 #define PDF_IS_DOCUMENT(obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PDF_TYPE_DOCUMENT))
+#define PDF_DOCUMENT_CLASS(k)         (G_TYPE_CHECK_CLASS_CAST((k), PDF_TYPE_DOCUMENT, PdfDocumentClass))
 
 typedef struct _PdfDocument PdfDocument;
 typedef struct _PdfDocumentClass PdfDocumentClass;
@@ -34,6 +37,43 @@ GType                 pdf_document_get_type   (void) G_GNUC_CONST;
 
 G_MODULE_EXPORT GType register_evince_backend (GTypeModule *module);
 
+typedef struct {
+	EvFileExporterFormat format;
+
+	/* Pages per sheet */
+	gint pages_per_sheet;
+	gint pages_printed;
+	gint pages_x;
+	gint pages_y;
+	gdouble paper_width;
+	gdouble paper_height;
+	
+	cairo_t *cr;
+} PdfPrintContext;
+
+struct _PdfDocumentClass
+{
+	EvDocumentClass parent_class;
+};
+
+struct _PdfDocument
+{
+	EvDocument parent_instance;
+
+	PopplerDocument *document;
+	gchar *password;
+	gboolean forms_modified;
+	gboolean annots_modified;
+
+	PopplerFontInfo *font_info;
+	PopplerFontsIter *fonts_iter;
+	int fonts_scanned_pages;
+	gboolean missing_fonts;
+
+	PdfPrintContext *print_ctx;
+
+	GHashTable *annots;
+};
 
 G_END_DECLS
 

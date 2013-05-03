@@ -504,21 +504,39 @@ if test "x$have_spectre" = "xyes"; then
 fi
 
 dnl ================== ps checks ====================================================
-AC_ARG_ENABLE(ps,
-  	[AS_HELP_STRING([--disable-ps],
-			[Disable the PostScript backend])],
-	[enable_ps=$enableval],
-	[enable_ps=yes])
+AC_ARG_WITH(ps,
+            [AC_HELP_STRING([--with-ps=no/ps/pspdf],
+                    [Compile with PostScript backend [default=ps]])],
+            enable_ps=$withval,
+            enable_ps="ps")
 
-if test "x$enable_ps" = "xyes"; then
+if test "x$enable_ps" = "xps"; then
    if test "x$have_spectre" = "xyes"; then
+      AC_DEFINE([WITH_PS_BACKEND], [1], [Enable support for PostScript files with libspectre.])
       AC_DEFINE([ENABLE_PS], [1], [Enable support for PostScript files.])
    else
       enable_ps="no"
       AC_MSG_WARN([PS support is disabled since libspectre (version >= $SPECTRE_REQUIRED) is needed])
    fi
 fi
-AM_CONDITIONAL(ENABLE_PS, test x$enable_ps = xyes)
+
+if test "x$enable_ps" = "xpspdf"; then   
+    AC_DEFINE([WITH_PSPDF_BACKEND],[1], [Enable support for PostScript files with pspdf.])
+    AC_DEFINE([ENABLE_PS], [1], [Enable support for PostScript files.])
+    AC_ARG_WITH(gs-ps2pdf-params,
+                [AC_HELP_STRING([--with-gs-ps2pdf-params],
+                        [Define Ghostscript ps to pdf parameters])],
+           PS2PDF_PARMS=$withval,
+           PS2PDF_PARMS="-sDEVICE=pdfwrite"
+	    )
+    AC_DEFINE_UNQUOTED(PS_TO_PDF_PARAMS, "$PS2PDF_PARMS", [Ps to Pdf parameters for Ghostscript.])
+    AC_MSG_RESULT(Ps to Pdf parameters for Ghostscript: $PS2PDF_PARMS)
+fi
+   
+AM_CONDITIONAL(WITH_PS_BACKEND, test x$enable_ps = xps)
+AM_CONDITIONAL(WITH_PSPDF_BACKEND, test x$enable_ps = xpspdf)
+AM_CONDITIONAL(ENABLE_PS, test ! x$enable_ps = xno)
+
 dnl ======================== End of ps checks ===================================
 
 dnl ================== tiff checks ===================================================
@@ -675,7 +693,7 @@ dnl =================== Mime types list ========================================
 if test "x$enable_pdf" = "xyes" ; then
 	EVINCE_MIME_TYPES="application/pdf;application/x-bzpdf;application/x-gzpdf;application/x-xzpdf;"
 fi
-if test "x$enable_ps" = "xyes" ; then
+if test ! "x$enable_ps" = "xno" ; then
 	EVINCE_MIME_TYPES="${EVINCE_MIME_TYPES}application/postscript;application/x-bzpostscript;application/x-gzpostscript;image/x-eps;image/x-bzeps;image/x-gzeps;"
 fi
 if test "x$enable_dvi" = "xyes"; then
@@ -752,6 +770,7 @@ backend/dvi/Makefile
 backend/dvi/mdvi-lib/Makefile
 backend/pdf/Makefile
 backend/ps/Makefile
+backend/pspdf/Makefile
 backend/tiff/Makefile
 backend/xps/Makefile
 cut-n-paste/Makefile

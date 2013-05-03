@@ -71,48 +71,6 @@
 /* license field from Creative Commons schema, http://creativecommons.org/ns */
 #define LICENSE_URI "/x:xmpmeta/rdf:RDF/rdf:Description/cc:license/@rdf:resource"
 
-typedef struct {
-	EvFileExporterFormat format;
-
-	/* Pages per sheet */
-	gint pages_per_sheet;
-	gint pages_printed;
-	gint pages_x;
-	gint pages_y;
-	gdouble paper_width;
-	gdouble paper_height;
-	
-#ifdef HAVE_CAIRO_PRINT
-	cairo_t *cr;
-#else
-	PopplerPSFile *ps_file;
-#endif
-} PdfPrintContext;
-
-struct _PdfDocumentClass
-{
-	EvDocumentClass parent_class;
-};
-
-struct _PdfDocument
-{
-	EvDocument parent_instance;
-
-	PopplerDocument *document;
-	gchar *password;
-	gboolean forms_modified;
-	gboolean annots_modified;
-
-	PopplerFontInfo *font_info;
-	PopplerFontsIter *fonts_iter;
-	int fonts_scanned_pages;
-	gboolean missing_fonts;
-
-	PdfPrintContext *print_ctx;
-
-	GHashTable *annots;
-};
-
 static void pdf_document_security_iface_init             (EvDocumentSecurityInterface    *iface);
 static void pdf_document_document_links_iface_init       (EvDocumentLinksInterface       *iface);
 static void pdf_document_document_images_iface_init      (EvDocumentImagesInterface      *iface);
