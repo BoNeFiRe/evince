@@ -25,7 +25,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-#include "pspdf-converter.h"
+#include "pdfdocument-converter.h"
 
 #define MAX_BUFSIZE 1024
 

@@ -1,6 +1,7 @@
 [Evince Backend]
 Module=pdfdocument
 Resident=true
-_TypeDescription=PDF Documents
-MimeType=application/pdf;application/x-bzpdf;application/x-gzpdf;application/x-xzpdf;application/x-ext-pdf;
+_TypeDescription=PDF and PS Documents
+MimeType=application/pdf;application/x-bzpdf;application/x-gzpdf;application/x-xzpdf;application/x-ext-pdf;application/postscript;application/x-bzpostscript;application/x-gzpostscript;image/x-eps;image/x-bzeps;image/x-gzeps;application/x-ext-ps;application/x-ext-eps;
+
 

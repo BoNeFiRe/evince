@@ -2,7 +2,9 @@ backend_LTLIBRARIES = libpdfdocument.la
 
 libpdfdocument_la_SOURCES =			\
 	ev-poppler.cc				\
-	ev-poppler.h
+	ev-poppler.h		\
+	pdfdocument-converter.c		\
+	pdfdocument-converter.h
 
 libpdfdocument_la_CPPFLAGS = \
 	-I$(top_srcdir) \

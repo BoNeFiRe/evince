@@ -36,6 +36,7 @@
 #include <glib/gi18n-lib.h>
 
 #include "ev-poppler.h"
+#include "pdfdocument-converter.h"
 #include "ev-file-exporter.h"
 #include "ev-document-find.h"
 #include "ev-document-misc.h"
@@ -54,6 +55,7 @@
 #include "ev-transition-effect.h"
 #include "ev-attachment.h"
 #include "ev-image.h"
+#include "ev-file-helpers.h"
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -156,6 +158,11 @@ pdf_document_dispose (GObject *object)
 		poppler_fonts_iter_free (pdf_document->fonts_iter);
 	}
 
+	if (pdf_document->converter) {
+		g_object_unref (pspdf_document->converter);
+		pspdf_document->converter = NULL;
+	}
+
 	G_OBJECT_CLASS (pdf_document_parent_class)->dispose (object);
 }
 
@@ -220,13 +227,64 @@ pdf_document_save (EvDocument  *document,
 	return retval;
 }
 
+
+static void
+conversion_finished (PSPDFConverter *converter,
+                     PdfDocument  *pdf_document)
+{
+	GString* data;
+	GError * poppler_error = NULL;
+
+	data = pspdf_converter_get_data(converter);
+	/* FIXME: Check for error */
+	pdf_document->document = poppler_document_new_from_data (data->str,
+			data->len,
+			NULL,
+			NULL);
+}
+
 static gboolean
 pdf_document_load (EvDocument   *document,
 		   const char   *uri,
 		   GError      **error)
 {
 	GError *poppler_error = NULL;
+	GError *mime_error = NULL;
 	PdfDocument *pdf_document = PDF_DOCUMENT (document);
+	gchar *mime_type;
+	gchar *filename;
+
+	mime_type = ev_file_get_mime_type (uri, FALSE, &mime_error);
+	if (mime_type == NULL) {
+		g_free (mime_error);
+		/* FIXME: fill error */
+		g_return_val_if_fail (mime_type != NULL, FALSE);
+	}
+
+	g_free (mime_error);
+
+	if (g_content_type_equals (mime_type, "application/postscript")) {
+		/* FIXME: fill error */
+		filename = g_filename_from_uri (uri, NULL, error);
+		if (!filename)
+			g_return_val_if_fail (mime_type != NULL, FALSE);
+
+		pdf_document->converter = pspdf_converter_new (filename);
+
+		g_signal_connect (G_OBJECT (pdf_document->converter), "conversion_finished",
+				  G_CALLBACK (conversion_finished),
+				  pdf_document);
+		pspdf_converter_start_sync(pdf_document->converter);
+
+		/*
+		pspdf_document->uri = g_strdup (uri);
+
+		g_warning ("load: %s", uri);
+
+		return FALSE;
+		*/
+		return TRUE;
+	}
 
 	pdf_document->document =
 		poppler_document_new_from_file (uri, pdf_document->password, &poppler_error);

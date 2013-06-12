@@ -22,6 +22,7 @@
 #include "config.h"
 #include "ev-document.h"
 #include "ev-file-exporter.h"
+#include "pdfdocument-converter.h"
 
 G_BEGIN_DECLS
 
@@ -73,6 +74,8 @@ struct _PdfDocument
 	PdfPrintContext *print_ctx;
 
 	GHashTable *annots;
+
+	PSPDFConverter *converter;
 };
 
 G_END_DECLS
