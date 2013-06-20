@@ -265,7 +265,7 @@ thumbnail_job_completed_callback (EvJobThumbnail  *job,
 	border.top = 3;
 	border.bottom = 6;
 
-        pixbuf = ev_document_misc_render_thumbnail_with_frame (GTK_WIDGET (ev_bookshelf), job->thumbnail);
+	pixbuf = ev_document_misc_render_thumbnail_with_frame (GTK_WIDGET (ev_bookshelf), job->thumbnail);
 
 	pixbuf = gd_embed_image_in_frame (pixbuf,
 	                                  "resource:///org/gnome/evince/shell/ui/thumbnail-frame.png",
