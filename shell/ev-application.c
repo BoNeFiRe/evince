@@ -727,7 +727,7 @@ ev_application_open_window (EvApplication *application,
 			    GdkScreen     *screen,
 			    guint32        timestamp)
 {
-	GtkWidget *new_window = ev_window_new ();
+	GtkWidget *new_window = ev_window_new_with_bookshelf ();
 #ifdef GDK_WINDOWING_X11
 	GdkWindow *gdk_window;
 #endif

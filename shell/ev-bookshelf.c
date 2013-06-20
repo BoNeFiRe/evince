@@ -30,19 +30,6 @@
 #include "ev-jobs.h"
 #include "ev-job-scheduler.h"
 
-typedef struct _EvThumbsSize
-{
-	gint width;
-	gint height;
-} EvThumbsSize;
-
-typedef struct _EvThumbsSizeCache {
-	gboolean uniform;
-	gint uniform_width;
-	gint uniform_height;
-	EvThumbsSize *sizes;
-} EvThumbsSizeCache;
-
 typedef enum {
 	EV_BOOKSHELF_JOB_COLUMN = GD_MAIN_COLUMN_LAST,
 	EV_BOOKSHELF_THUMBNAILED_COLUMN,
@@ -53,8 +40,6 @@ typedef enum {
 struct _EvBookshelfPrivate {
 	GtkWidget         *view;
 	GtkListStore      *list_store;
-	GHashTable        *loading_icons;
-	EvThumbsSizeCache *size_cache;
 	gchar             *button_press_item_path;
 };
 

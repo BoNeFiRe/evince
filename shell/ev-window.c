@@ -7650,6 +7650,9 @@ ev_window_init (EvWindow *ev_window)
 	g_object_ref (ev_window->priv->view);
 	g_object_ref (ev_window->priv->password_view);
 
+	gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
+			   ev_window->priv->view);
+
 	/* Connect to model signals */
 	g_signal_connect_swapped (ev_window->priv->model,
 				  "page-changed",
@@ -7771,16 +7774,6 @@ ev_window_init (EvWindow *ev_window)
 			   GDK_ACTION_COPY);
 	gtk_drag_dest_add_uri_targets (GTK_WIDGET (ev_window));
 
-	ev_window->priv->bookshelf = ev_bookshelf_new ();
-	g_object_ref (ev_window->priv->bookshelf);
-	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
-	gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
-			   GTK_WIDGET (ev_window->priv->bookshelf));
-
-	g_signal_connect_object (ev_window->priv->bookshelf,
-	                         "item-activated",
-	                         G_CALLBACK (bookshelf_item_activated_cb),
-	                         ev_window, 0);
 }
 
 /**
@@ -7802,6 +7795,31 @@ ev_window_new (void)
 					      NULL));
 
 	return ev_window;
+}
+
+GtkWidget *
+ev_window_new_with_bookshelf ()
+{
+	EvWindow  *ev_window;
+	GtkWidget *widget;
+
+	ev_window = EV_WINDOW (ev_window_new ());
+
+	widget = gtk_bin_get_child (GTK_BIN (ev_window->priv->scrolled_window));
+	gtk_container_remove (GTK_CONTAINER (ev_window->priv->scrolled_window), widget);
+
+	ev_window->priv->bookshelf = ev_bookshelf_new ();
+
+	g_object_ref (ev_window->priv->bookshelf);
+	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
+	gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
+			   GTK_WIDGET (ev_window->priv->bookshelf));
+
+	g_signal_connect_object (ev_window->priv->bookshelf,
+	                         "item-activated",
+	                         G_CALLBACK (bookshelf_item_activated_cb),
+	                         ev_window, 0);
+	return GTK_WIDGET (ev_window);
 }
 
 const gchar *
