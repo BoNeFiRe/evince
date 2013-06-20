@@ -7368,6 +7368,7 @@ ev_window_init (EvWindow *ev_window)
 #endif /* ENABLE_DBUS */
 
 	ev_window->priv->model = ev_document_model_new ();
+	ev_window->priv->bookshelf = NULL;
 
 	ev_window->priv->page_mode = PAGE_MODE_DOCUMENT;
 	ev_window->priv->chrome = EV_CHROME_NORMAL;
@@ -7798,7 +7799,7 @@ ev_window_new (void)
 }
 
 GtkWidget *
-ev_window_new_with_bookshelf ()
+ev_window_new_with_bookshelf (void)
 {
 	EvWindow  *ev_window;
 	GtkWidget *widget;
