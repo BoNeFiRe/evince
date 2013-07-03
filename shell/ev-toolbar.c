@@ -176,6 +176,16 @@ ev_toolbar_constructed (GObject *object)
         action_group = ev_window_get_main_action_group (ev_toolbar->priv->window);
         ui_manager = ev_window_get_ui_manager (ev_toolbar->priv->window);
 
+	/* Bookshelf */
+	action = gtk_action_group_get_action (action_group, "ViewBookshelf");
+	button = ev_toolbar_create_button (ev_toolbar, action);
+	tool_item = GTK_WIDGET (gtk_tool_item_new ());
+	gtk_container_add (GTK_CONTAINER (tool_item), button);
+	gtk_widget_show (button);
+	gtk_widget_set_margin_right (tool_item, 12);
+	gtk_container_add (GTK_CONTAINER (ev_toolbar), tool_item);
+	gtk_widget_show (tool_item);
+
         /* Navigation */
         hbox = ev_toolbar_create_button_group (ev_toolbar);
 

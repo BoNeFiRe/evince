@@ -22,6 +22,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "ev-bookshelf.h"
+#include "ev-file-helpers.h"
 #include "gd-icon-utils.h"
 #include "gd-main-view-generic.h"
 #include "gd-main-icon-view.h"
@@ -29,11 +30,13 @@
 #include "ev-document-model.h"
 #include "ev-jobs.h"
 #include "ev-job-scheduler.h"
+#include "ev-metadata.h"
 
 typedef enum {
 	EV_BOOKSHELF_JOB_COLUMN = GD_MAIN_COLUMN_LAST,
 	EV_BOOKSHELF_THUMBNAILED_COLUMN,
 	EV_BOOKSHELF_DOCUMENT_COLUMN,
+	EV_BOOKSHELF_METADATA_COLUMN,
 	NUM_COLUMNS
 } EvBookshelfColumns;
 
@@ -89,6 +92,64 @@ ev_bookshelf_set_property (GObject      *object,
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
+}
+
+static gboolean
+metadata_is_stale (EvMetadata *metadata, GFile *file)
+{
+	GFileInfo *info = NULL;
+	GError    *error = NULL;
+	guint64    mtime_metadata;
+	guint64    mtime_file;
+
+	info = g_file_query_info (file,
+	                          G_FILE_ATTRIBUTE_TIME_MODIFIED,
+	                          0,
+	                          NULL,
+	                          &error);
+	if (!info) {
+		g_warning ("%s", error->message);
+		g_error_free (error);
+
+		return TRUE;
+	}
+
+	if (!ev_metadata_get_uint64 (metadata, "mtime", &mtime_metadata))
+		return TRUE;
+
+	mtime_file = g_file_info_get_attribute_uint64 (info, G_FILE_ATTRIBUTE_TIME_MODIFIED);
+
+	if (mtime_file != 0 && mtime_metadata >= mtime_file)
+		return FALSE;
+
+	return TRUE;
+}
+
+static void
+save_thumbnail (GdkPixbuf  *pixbuf,
+                EvMetadata *metadata)
+{
+	GFile     *thumbnail_file = NULL;
+	GError    *error = NULL;
+	gchar     *thumbnail_path = NULL;
+	
+	thumbnail_file = ev_mkstemp_file ("thumb.XXXXXX", &error);
+
+	if (thumbnail_file) {
+		thumbnail_path = g_file_get_path (thumbnail_file);
+		g_object_unref (thumbnail_file);
+	}
+
+	if (thumbnail_path) {
+		gdk_pixbuf_save (pixbuf, thumbnail_path,
+				 "png", &error, NULL);
+		if (!error)
+			ev_metadata_set_string (metadata, "thumbnail-path", thumbnail_path);
+		g_free (thumbnail_path);
+	}
+
+	if (error)
+		g_error_free (error);
 }
 
 static void
@@ -242,7 +303,8 @@ thumbnail_job_completed_callback (EvJobThumbnail  *job,
 	EvBookshelfPrivate *priv = ev_bookshelf->priv;
 	GtkTreeIter        *iter;
 	GdkPixbuf          *pixbuf;
-	EvDocument          document;
+	EvDocument         *document;
+	EvMetadata         *metadata;
 	GtkBorder           border;
 
 	border.left = 4;
@@ -260,6 +322,7 @@ thumbnail_job_completed_callback (EvJobThumbnail  *job,
 	gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
 	                    iter,
 	                    EV_BOOKSHELF_DOCUMENT_COLUMN, &document,
+	                    EV_BOOKSHELF_METADATA_COLUMN, &metadata,
 	                    -1);
 
 	gtk_list_store_set (priv->list_store,
@@ -269,6 +332,11 @@ thumbnail_job_completed_callback (EvJobThumbnail  *job,
 			    EV_BOOKSHELF_JOB_COLUMN, NULL,
 			    -1);
 
+	if (metadata) {
+		save_thumbnail (pixbuf, metadata);
+		ev_metadata_set_uint64 (metadata, "mtime", g_get_real_time ());
+		g_object_unref (metadata);
+	}
         g_object_unref (pixbuf);
 }
 
@@ -279,9 +347,14 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 	EvBookshelfPrivate *priv = ev_bookshelf->priv;
 	GtkTreeIter        *iter;
 	EvDocument         *document;
+	EvMetadata         *metadata;
 
 	document = job_load->parent.document;
 	iter = (GtkTreeIter *) g_object_get_data (G_OBJECT (job_load), "tree_iter");
+	gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
+	                    iter,
+	                    EV_BOOKSHELF_METADATA_COLUMN, &metadata,
+	                    -1);
 
 	if (document) {
 		EvJob           *job_thumbnail;
@@ -322,8 +395,13 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 				    EV_BOOKSHELF_JOB_COLUMN, job_thumbnail,
 		                    EV_BOOKSHELF_DOCUMENT_COLUMN, document,
 				    -1);
-		
+
 		ev_job_scheduler_push_job (EV_JOB (job_thumbnail), EV_JOB_PRIORITY_HIGH);
+
+		if (metadata) {
+			ev_metadata_set_string (metadata, "author", info->author == NULL ? _("") : info->author);
+			g_object_unref (metadata);
+		}
 
 		g_object_unref (model);
 		g_object_unref (job_thumbnail);
@@ -334,6 +412,23 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 				    EV_BOOKSHELF_THUMBNAILED_COLUMN, TRUE,
 				    EV_BOOKSHELF_JOB_COLUMN, NULL,
 				    -1);
+		if (metadata) {
+			GdkPixbuf *thumbnail;
+
+			ev_metadata_set_string (metadata, "author", _(""));
+			gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
+				            iter,
+				            GD_MAIN_COLUMN_ICON, &thumbnail,
+				            -1);
+
+			if (thumbnail)
+				save_thumbnail (thumbnail, metadata);
+
+			ev_metadata_set_uint64 (metadata, "mtime", g_get_real_time ());
+
+			g_object_unref (metadata);
+			g_object_unref (thumbnail);
+		}
 	}
 }
 
@@ -352,9 +447,13 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 	gtk_list_store_clear (ev_bookshelf->priv->list_store);
 
 	for (l = items; l && l->data; l = g_list_next (l)) {
-		EvJob         *job_load;
+		EvJob         *job_load = NULL;
+		EvMetadata    *metadata = NULL;
+		GFile         *file;
 		const gchar   *name;
 		const gchar   *uri;
+		gchar         *thumbnail_path;
+		gchar         *author;
 		GtkRecentInfo *info;
 		GdkPixbuf     *thumbnail;
 		GtkTreeIter    iter;
@@ -367,15 +466,30 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 
 		name = gtk_recent_info_get_display_name (info);
 		uri = gtk_recent_info_get_uri (info);
+		file = g_file_new_for_uri (uri);
 
-		thumbnail = gtk_recent_info_get_icon (info, ICON_VIEW_SIZE);
+		if (ev_is_metadata_supported_for_file (file)) {
+			
+			metadata = ev_metadata_new (file);
+			if (metadata_is_stale (metadata, file) || 
+			    !ev_metadata_get_string (metadata, "author", &author) ||
+			    !ev_metadata_get_string (metadata, "thumbnail-path", &thumbnail_path))
+				goto load_document;
 
-		job_load = ev_job_load_new (uri);
+			thumbnail = gdk_pixbuf_new_from_file (thumbnail_path, NULL);
+			if (!thumbnail)
+				goto load_document;
+		} else {
 
-		g_signal_connect (job_load, "finished",
-		                  G_CALLBACK (document_load_job_completed_callback),
-		                  ev_bookshelf);
+		load_document:
 
+			author = _("");
+			thumbnail = gtk_recent_info_get_icon (info, ICON_VIEW_SIZE);
+			job_load = ev_job_load_new (uri);
+			g_signal_connect (job_load, "finished",
+				          G_CALLBACK (document_load_job_completed_callback),
+				          ev_bookshelf);
+		}
 		access_time = gtk_recent_info_get_added (info);
 
 		gtk_list_store_append (ev_bookshelf->priv->list_store, &iter);
@@ -391,24 +505,27 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 		                    EV_BOOKSHELF_DOCUMENT_COLUMN, NULL,
 		                    EV_BOOKSHELF_JOB_COLUMN, job_load,
 		                    EV_BOOKSHELF_THUMBNAILED_COLUMN, FALSE,
+		                    EV_BOOKSHELF_METADATA_COLUMN, metadata,
 		                    -1);
 
-		g_object_set_data_full (G_OBJECT (job_load), "tree_iter",
-					gtk_tree_iter_copy (&iter),
-					(GDestroyNotify) gtk_tree_iter_free);
+		if (job_load) {
+			
+			g_object_set_data_full (G_OBJECT (job_load), "tree_iter",
+			                        gtk_tree_iter_copy (&iter),
+			                        (GDestroyNotify) gtk_tree_iter_free);
 
-		ev_job_scheduler_push_job (EV_JOB (job_load), EV_JOB_PRIORITY_HIGH);
-
+			ev_job_scheduler_push_job (EV_JOB (job_load), EV_JOB_PRIORITY_HIGH);
+		}
 		if (thumbnail != NULL)
                         g_object_unref (thumbnail);
 
 		if (++n_items == MAX_RECENT_ITEMS)
 			break;
 	}
-	
+
 	g_list_foreach (items, (GFunc) gtk_recent_info_unref, NULL);
 	g_list_free (items);
-	
+
 	gd_main_view_generic_set_model (generic, GTK_TREE_MODEL (ev_bookshelf->priv->list_store));
 }
 
@@ -442,7 +559,7 @@ static void
 ev_bookshelf_init (EvBookshelf *ev_bookshelf)
 {
 	ev_bookshelf->priv = G_TYPE_INSTANCE_GET_PRIVATE (ev_bookshelf, EV_TYPE_BOOKSHELF, EvBookshelfPrivate);
-	ev_bookshelf->priv->list_store = gtk_list_store_new (10,
+	ev_bookshelf->priv->list_store = gtk_list_store_new (11,
 	                                                     G_TYPE_STRING,
 	                                                     G_TYPE_STRING,
 	                                                     G_TYPE_STRING,
@@ -452,7 +569,8 @@ ev_bookshelf_init (EvBookshelf *ev_bookshelf)
 	                                                     G_TYPE_BOOLEAN,
 	                                                     EV_TYPE_JOB,
 	                                                     G_TYPE_BOOLEAN,
-	                                                     EV_TYPE_DOCUMENT);
+	                                                     EV_TYPE_DOCUMENT,
+	                                                     EV_TYPE_METADATA);
 	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (ev_bookshelf->priv->list_store),
 	                                      GD_MAIN_COLUMN_MTIME,
 	                                      GTK_SORT_DESCENDING);

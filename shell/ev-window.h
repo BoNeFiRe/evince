@@ -70,7 +70,6 @@ struct _EvWindowClass {
 
 GType		ev_window_get_type	                 (void) G_GNUC_CONST;
 GtkWidget      *ev_window_new                            (void);
-GtkWidget      *ev_window_new_with_bookshelf             (void);
 const char     *ev_window_get_uri                        (EvWindow       *ev_window);
 void		ev_window_open_uri	                 (EvWindow       *ev_window,
                                                           const char     *uri,
@@ -90,7 +89,7 @@ const gchar    *ev_window_get_dbus_object_path           (EvWindow       *ev_win
 GtkUIManager   *ev_window_get_ui_manager                 (EvWindow       *ev_window);
 GtkActionGroup *ev_window_get_main_action_group          (EvWindow       *ev_window);
 GtkActionGroup *ev_window_get_zoom_selector_action_group (EvWindow       *ev_window);
-
+void            ev_window_show_bookshelf                 (EvWindow       *ev_window);
 
 G_END_DECLS
 

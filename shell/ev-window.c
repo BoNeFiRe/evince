@@ -518,7 +518,9 @@ ev_window_update_actions_sensitivity (EvWindow *ev_window)
 		n_pages = ev_document_get_n_pages (ev_window->priv->document);
 		has_pages = n_pages > 0;
 		dual_mode = ev_document_model_get_dual_page (ev_window->priv->model);
-	}
+		ev_window_set_action_sensitive (ev_window, "ViewBookshelf", TRUE);
+	} else
+		ev_window_set_action_sensitive (ev_window, "ViewBookshelf", FALSE);
 
 	can_find_in_page = (ev_window->priv->find_job &&
 			    ev_job_find_has_results (EV_JOB_FIND (ev_window->priv->find_job)));
@@ -4703,6 +4705,18 @@ ev_window_cmd_bookmark_activate (GtkAction *action,
 	ev_document_model_set_page (window->priv->model, page);
 }
 
+static void
+ev_window_cmd_toggle_bookshelf (GtkAction *action,
+                                EvWindow  *ev_window)
+{
+	if (!ev_window->priv->bookshelf)
+		ev_window_show_bookshelf (ev_window);
+	else
+		ev_window_try_swap_out_bookshelf (ev_window);
+
+	return;
+}
+
 static gint
 compare_bookmarks (EvBookmark *a,
 		   EvBookmark *b)
@@ -5364,11 +5378,12 @@ ev_window_try_swap_out_bookshelf (EvWindow *ev_window)
 	if (ev_window->priv->bookshelf)
 	{
 		gtk_container_remove (GTK_CONTAINER (ev_window->priv->scrolled_window), widget);
+		gtk_widget_hide (GTK_WIDGET (ev_window->priv->bookshelf));
 		g_object_unref (ev_window->priv->bookshelf);
 		ev_window->priv->bookshelf = NULL;
 
 		gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
-	                   ev_window->priv->view);
+		                   ev_window->priv->view);
 	}
 }
 
@@ -5377,6 +5392,8 @@ bookshelf_item_activated_cb (EvBookshelf *bookshelf,
                              const char  *uri,
                              EvWindow    *ev_window)
 {
+	if (ev_window->priv->uri && strcmp (ev_window->priv->uri, uri) == 0)
+		ev_window_try_swap_out_bookshelf (ev_window);
 	ev_application_open_uri_at_dest (EV_APP, uri,
 					 gtk_window_get_screen (GTK_WINDOW (ev_window)),
 					 NULL, 0, NULL, gtk_get_current_event_time ());
@@ -6104,6 +6121,11 @@ static const GtkActionEntry entries[] = {
 
 	{ "ViewAutoscroll", GTK_STOCK_MEDIA_PLAY, N_("Auto_scroll"), NULL, NULL,
 	  G_CALLBACK (ev_window_cmd_view_autoscroll) },
+
+	/* Bookshelf */
+	{ "ViewBookshelf", GTK_STOCK_JUSTIFY_FILL, N_("_Bookshelf"), NULL,
+	  N_("Toggle between bookshelf and open document"),
+	  G_CALLBACK (ev_window_cmd_toggle_bookshelf) },
 
         /* Go menu */
         { "GoPreviousPage", "go-up-symbolic", N_("_Previous Page"), "<control>Page_Up",
@@ -7798,29 +7820,30 @@ ev_window_new (void)
 	return ev_window;
 }
 
-GtkWidget *
-ev_window_new_with_bookshelf (void)
+void
+ev_window_show_bookshelf (EvWindow *ev_window)
 {
-	EvWindow  *ev_window;
 	GtkWidget *widget;
 
-	ev_window = EV_WINDOW (ev_window_new ());
-
 	widget = gtk_bin_get_child (GTK_BIN (ev_window->priv->scrolled_window));
+
 	gtk_container_remove (GTK_CONTAINER (ev_window->priv->scrolled_window), widget);
 
-	ev_window->priv->bookshelf = ev_bookshelf_new ();
+	if (!ev_window->priv->bookshelf) {
+		ev_window->priv->bookshelf = ev_bookshelf_new ();
+		g_object_ref (ev_window->priv->bookshelf);
+		gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
+		g_signal_connect_object (ev_window->priv->bookshelf,
+		                         "item-activated",
+		                         G_CALLBACK (bookshelf_item_activated_cb),
+		                         ev_window, 0);
+	}
 
-	g_object_ref (ev_window->priv->bookshelf);
 	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
 	gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
-			   GTK_WIDGET (ev_window->priv->bookshelf));
+	                   GTK_WIDGET (ev_window->priv->bookshelf));
 
-	g_signal_connect_object (ev_window->priv->bookshelf,
-	                         "item-activated",
-	                         G_CALLBACK (bookshelf_item_activated_cb),
-	                         ev_window, 0);
-	return GTK_WIDGET (ev_window);
+	return;
 }
 
 const gchar *

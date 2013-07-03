@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <glib.h>
 #include <gio/gio.h>
 #include <string.h>
 
@@ -229,6 +230,26 @@ ev_metadata_get_int (EvMetadata  *metadata,
 }
 
 gboolean
+ev_metadata_get_uint64 (EvMetadata  *metadata,
+                        const gchar *key,
+                        guint64     *value)
+{
+	gchar   *string_value;
+	gchar   *endptr;
+	guint64  uint64_value;
+
+	if (!ev_metadata_get_string (metadata, key, &string_value))
+		return FALSE;
+
+	uint64_value = g_ascii_strtoull (string_value, &endptr, 0);
+	if (uint64_value == 0 && string_value == endptr)
+		return FALSE;
+
+	*value = uint64_value;
+	return TRUE;
+}
+
+gboolean
 ev_metadata_set_int (EvMetadata  *metadata,
 		     const gchar *key,
 		     gint         value)
@@ -236,6 +257,18 @@ ev_metadata_set_int (EvMetadata  *metadata,
 	gchar string_value[32];
 
 	g_snprintf (string_value, sizeof (string_value), "%d", value);
+
+	return ev_metadata_set_string (metadata, key, string_value);
+}
+
+gboolean
+ev_metadata_set_uint64 (EvMetadata  *metadata,
+		        const gchar *key,
+		        guint64      value)
+{
+	gchar string_value[21];
+
+	g_snprintf (string_value, sizeof (string_value), "%"G_GUINT64_FORMAT, value);
 
 	return ev_metadata_set_string (metadata, key, string_value);
 }

@@ -62,6 +62,12 @@ gboolean    ev_metadata_get_boolean           (EvMetadata  *metadata,
 gboolean    ev_metadata_set_boolean           (EvMetadata  *metadata,
 					       const gchar *key,
 					       gboolean     value);
+gboolean    ev_metadata_get_uint64            (EvMetadata  *metadata,
+                                               const gchar *key,
+                                               guint64     *value);
+gboolean    ev_metadata_set_uint64            (EvMetadata  *metadata,
+		                               const gchar *key,
+		                               guint64      value);
 gboolean    ev_metadata_has_key               (EvMetadata  *metadata,
                                                const gchar *key);
 
