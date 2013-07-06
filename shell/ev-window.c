@@ -425,7 +425,7 @@ ev_window_setup_action_sensitivity (EvWindow *ev_window)
 	gboolean has_pages = FALSE;
 	gboolean can_find = FALSE;
 
-	if (document) {
+	if (document && !ev_window->priv->bookshelf) {
 		has_document = TRUE;
 		has_pages = ev_document_get_n_pages (document) > 0;
 		info = ev_document_get_info (document);
@@ -499,6 +499,7 @@ ev_window_setup_action_sensitivity (EvWindow *ev_window)
 	/* Toolbar-specific actions: */
 	ev_window_set_action_sensitive (ev_window, PAGE_SELECTOR_ACTION, has_pages);
 	ev_window_set_action_sensitive (ev_window, ZOOM_CONTROL_ACTION,  has_pages);
+	ev_window_set_action_sensitive (ev_window, HISTORY_ACTION, has_document);
 
         ev_window_update_actions_sensitivity (ev_window);
 }
@@ -513,15 +514,15 @@ ev_window_update_actions_sensitivity (EvWindow *ev_window)
 	gboolean can_find_in_page = FALSE;
 	gboolean dual_mode = FALSE;
 
-	if (ev_window->priv->document) {
+	if (ev_window->priv->document && !ev_window->priv->bookshelf) {
 		page = ev_document_model_get_page (ev_window->priv->model);
 		n_pages = ev_document_get_n_pages (ev_window->priv->document);
 		has_pages = n_pages > 0;
 		dual_mode = ev_document_model_get_dual_page (ev_window->priv->model);
-		ev_window_set_action_sensitive (ev_window, "ViewBookshelf", TRUE);
-	} else
-		ev_window_set_action_sensitive (ev_window, "ViewBookshelf", FALSE);
+	}
 
+	if (!ev_window->priv->bookshelf)
+		ev_window_set_action_sensitive (ev_window, "ViewBookshelf", TRUE);
 	can_find_in_page = (ev_window->priv->find_job &&
 			    ev_job_find_has_results (EV_JOB_FIND (ev_window->priv->find_job)));
 
@@ -1659,11 +1660,10 @@ ev_window_load_job_cb (EvJob *job,
 	g_assert (job_load->uri);
 
 	ev_window_hide_loading_message (ev_window);
+	ev_window_try_swap_out_bookshelf (ev_window);
 
 	/* Success! */
 	if (!ev_job_is_failed (job)) {
-
-		ev_window_try_swap_out_bookshelf (ev_window);
 
 		ev_document_model_set_document (ev_window->priv->model, document);
 
@@ -5371,20 +5371,13 @@ find_sidebar_result_activated_cb (EvFindSidebar *find_sidebar,
 static void
 ev_window_try_swap_out_bookshelf (EvWindow *ev_window)
 {
-	GtkWidget *widget;
-
-	widget = gtk_bin_get_child (GTK_BIN (ev_window->priv->scrolled_window));
-
 	if (ev_window->priv->bookshelf)
 	{
-		gtk_container_remove (GTK_CONTAINER (ev_window->priv->scrolled_window), widget);
 		gtk_widget_hide (GTK_WIDGET (ev_window->priv->bookshelf));
 		g_object_unref (ev_window->priv->bookshelf);
 		ev_window->priv->bookshelf = NULL;
-
-		gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
-		                   ev_window->priv->view);
 	}
+	gtk_widget_show (ev_window->priv->hpaned);
 }
 
 static void
@@ -7823,25 +7816,21 @@ ev_window_new (void)
 void
 ev_window_show_bookshelf (EvWindow *ev_window)
 {
-	GtkWidget *widget;
-
-	widget = gtk_bin_get_child (GTK_BIN (ev_window->priv->scrolled_window));
-
-	gtk_container_remove (GTK_CONTAINER (ev_window->priv->scrolled_window), widget);
-
+	gtk_widget_hide (ev_window->priv->hpaned);
 	if (!ev_window->priv->bookshelf) {
 		ev_window->priv->bookshelf = ev_bookshelf_new ();
 		g_object_ref (ev_window->priv->bookshelf);
-		gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
 		g_signal_connect_object (ev_window->priv->bookshelf,
 		                         "item-activated",
 		                         G_CALLBACK (bookshelf_item_activated_cb),
 		                         ev_window, 0);
+		gtk_box_pack_start (GTK_BOX (ev_window->priv->main_box),
+		                    GTK_WIDGET (ev_window->priv->bookshelf),
+		                    TRUE, TRUE, 0);
 	}
 
 	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
-	gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
-	                   GTK_WIDGET (ev_window->priv->bookshelf));
+	ev_window_setup_action_sensitivity (ev_window);
 
 	return;
 }
