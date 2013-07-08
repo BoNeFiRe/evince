@@ -213,8 +213,8 @@ compare_recent_items (GtkRecentInfo *a, GtkRecentInfo *b)
 	if (has_ev_a && has_ev_b) {
 		time_t time_a, time_b;
 
-		time_a = gtk_recent_info_get_visited (a);
-		time_b = gtk_recent_info_get_visited (b);
+		time_a = gtk_recent_info_get_modified (a);
+		time_b = gtk_recent_info_get_modified (b);
 
 		return (time_b - time_a);
 	} else if (has_ev_a) {
@@ -501,7 +501,7 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 				          G_CALLBACK (document_load_job_completed_callback),
 				          ev_bookshelf);
 		}
-		access_time = gtk_recent_info_get_visited (info);
+		access_time = gtk_recent_info_get_modified (info);
 
 		gtk_list_store_append (ev_bookshelf->priv->list_store, &iter);
 
