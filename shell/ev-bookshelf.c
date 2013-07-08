@@ -475,6 +475,9 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 		if (!gtk_recent_info_has_application (info, evince))
 			continue;
 
+		if (gtk_recent_info_is_local (info) && !gtk_recent_info_exists (info))
+			continue;
+
 		name = gtk_recent_info_get_display_name (info);
 		uri = gtk_recent_info_get_uri (info);
 		file = g_file_new_for_uri (uri);
