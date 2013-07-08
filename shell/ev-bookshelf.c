@@ -43,6 +43,7 @@ typedef enum {
 struct _EvBookshelfPrivate {
 	GtkWidget         *view;
 	GtkListStore      *list_store;
+	GtkRecentManager  *recent_manager;
 	gchar             *button_press_item_path;
 };
 
@@ -62,11 +63,12 @@ static gboolean ev_bookshelf_clear_job                   (GtkTreeModel *model,
                                                           GtkTreeIter *iter,
                                                           gpointer data);
 static void     ev_bookshelf_clear_model                 (EvBookshelf *bookshelf);
+static void     ev_bookshelf_refresh                     (EvBookshelf *bookshelf);
 
 G_DEFINE_TYPE (EvBookshelf, ev_bookshelf, GTK_TYPE_SCROLLED_WINDOW)
 
 #define ICON_VIEW_SIZE 128
-#define MAX_RECENT_ITEMS 20
+#define MAX_BOOKSHELF_ITEMS 20
 
 static void
 ev_bookshelf_dispose (GObject *obj)
@@ -79,6 +81,12 @@ ev_bookshelf_dispose (GObject *obj)
 		self->priv->list_store = NULL;
 	}
 
+	if (self->priv->recent_manager) {
+		g_signal_handlers_disconnect_by_func (self->priv->recent_manager,
+		                                      ev_bookshelf_refresh,
+		                                      self);
+		self->priv->recent_manager = NULL;
+	}
 	G_OBJECT_CLASS (ev_bookshelf_parent_class)->dispose (obj);
 }
 
@@ -205,8 +213,8 @@ compare_recent_items (GtkRecentInfo *a, GtkRecentInfo *b)
 	if (has_ev_a && has_ev_b) {
 		time_t time_a, time_b;
 
-		time_a = gtk_recent_info_get_added (a);
-		time_b = gtk_recent_info_get_added (b);
+		time_a = gtk_recent_info_get_visited (a);
+		time_b = gtk_recent_info_get_visited (b);
 
 		return (time_b - time_a);
 	} else if (has_ev_a) {
@@ -270,6 +278,10 @@ on_button_release_event (GtkWidget *view,
 		gtk_tree_model_get (GTK_TREE_MODEL (self->priv->list_store), &iter,
 			            GD_MAIN_COLUMN_URI, &uri,
 			            -1);
+		gtk_list_store_set (self->priv->list_store,
+		                    &iter,
+		                    GD_MAIN_COLUMN_SELECTED, TRUE,
+		                    -1);
 		g_signal_emit (self, signals[ITEM_ACTIVATED], 0, uri);
 	}
     exit:
@@ -438,10 +450,9 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 	GList             *items, *l;
 	guint              n_items = 0;
 	const gchar       *evince = g_get_application_name ();
-	GtkRecentManager  *recent_manager = gtk_recent_manager_get_default ();
 	GdMainViewGeneric *generic = get_generic (ev_bookshelf);
 
-	items = gtk_recent_manager_get_items (recent_manager);
+	items = gtk_recent_manager_get_items (ev_bookshelf->priv->recent_manager);
 	items = g_list_sort (items, (GCompareFunc) compare_recent_items);
 
 	gtk_list_store_clear (ev_bookshelf->priv->list_store);
@@ -490,7 +501,7 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 				          G_CALLBACK (document_load_job_completed_callback),
 				          ev_bookshelf);
 		}
-		access_time = gtk_recent_info_get_added (info);
+		access_time = gtk_recent_info_get_visited (info);
 
 		gtk_list_store_append (ev_bookshelf->priv->list_store, &iter);
 
@@ -498,7 +509,7 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 		                    GD_MAIN_COLUMN_ID, _("id"),
 		                    GD_MAIN_COLUMN_URI, uri,
 		                    GD_MAIN_COLUMN_PRIMARY_TEXT, name,
-		                    GD_MAIN_COLUMN_SECONDARY_TEXT, _(""),
+		                    GD_MAIN_COLUMN_SECONDARY_TEXT, author,
 		                    GD_MAIN_COLUMN_ICON, thumbnail,
 		                    GD_MAIN_COLUMN_MTIME, access_time,
 		                    GD_MAIN_COLUMN_SELECTED, FALSE,
@@ -519,7 +530,7 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 		if (thumbnail != NULL)
                         g_object_unref (thumbnail);
 
-		if (++n_items == MAX_RECENT_ITEMS)
+		if (++n_items == MAX_BOOKSHELF_ITEMS)
 			break;
 	}
 
@@ -559,6 +570,7 @@ static void
 ev_bookshelf_init (EvBookshelf *ev_bookshelf)
 {
 	ev_bookshelf->priv = G_TYPE_INSTANCE_GET_PRIVATE (ev_bookshelf, EV_TYPE_BOOKSHELF, EvBookshelfPrivate);
+	ev_bookshelf->priv->recent_manager = gtk_recent_manager_get_default ();
 	ev_bookshelf->priv->list_store = gtk_list_store_new (11,
 	                                                     G_TYPE_STRING,
 	                                                     G_TYPE_STRING,
@@ -581,7 +593,10 @@ ev_bookshelf_init (EvBookshelf *ev_bookshelf)
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (ev_bookshelf),
 	                                GTK_POLICY_NEVER,
 	                                GTK_POLICY_AUTOMATIC);
-
+	g_signal_connect_swapped (ev_bookshelf->priv->recent_manager,
+	                          "changed",
+	                          G_CALLBACK (ev_bookshelf_refresh),
+				  ev_bookshelf);
 	ev_bookshelf_rebuild (ev_bookshelf);
 }
 

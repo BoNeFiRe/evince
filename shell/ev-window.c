@@ -521,8 +521,9 @@ ev_window_update_actions_sensitivity (EvWindow *ev_window)
 		dual_mode = ev_document_model_get_dual_page (ev_window->priv->model);
 	}
 
-	if (!ev_window->priv->bookshelf)
-		ev_window_set_action_sensitive (ev_window, "ViewBookshelf", TRUE);
+	ev_window_set_action_sensitive (ev_window, "ViewBookshelf", 
+	                                ev_window->priv->document ||
+	                                !ev_window->priv->bookshelf);
 	can_find_in_page = (ev_window->priv->find_job &&
 			    ev_job_find_has_results (EV_JOB_FIND (ev_window->priv->find_job)));
 
@@ -4714,6 +4715,8 @@ ev_window_cmd_toggle_bookshelf (GtkAction *action,
 	else
 		ev_window_try_swap_out_bookshelf (ev_window);
 
+	ev_window_setup_action_sensitivity (ev_window);
+
 	return;
 }
 
@@ -6116,7 +6119,7 @@ static const GtkActionEntry entries[] = {
 	  G_CALLBACK (ev_window_cmd_view_autoscroll) },
 
 	/* Bookshelf */
-	{ "ViewBookshelf", GTK_STOCK_JUSTIFY_FILL, N_("_Bookshelf"), NULL,
+	{ "ViewBookshelf", "view-grid-symbolic", N_("_Bookshelf"), NULL,
 	  N_("Toggle between bookshelf and open document"),
 	  G_CALLBACK (ev_window_cmd_toggle_bookshelf) },
 
@@ -7830,7 +7833,6 @@ ev_window_show_bookshelf (EvWindow *ev_window)
 	}
 
 	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
-	ev_window_setup_action_sensitivity (ev_window);
 
 	return;
 }
