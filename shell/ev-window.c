@@ -4712,11 +4712,10 @@ ev_window_cmd_toggle_bookshelf (GtkAction *action,
 {
 	if (!ev_window->priv->bookshelf)
 		ev_window_show_bookshelf (ev_window);
-	else
+	else {
 		ev_window_try_swap_out_bookshelf (ev_window);
-
-	ev_window_setup_action_sensitivity (ev_window);
-
+		ev_window_setup_action_sensitivity (ev_window);
+	}
 	return;
 }
 
@@ -7833,6 +7832,7 @@ ev_window_show_bookshelf (EvWindow *ev_window)
 	}
 
 	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
+	ev_window_setup_action_sensitivity (ev_window);
 
 	return;
 }
