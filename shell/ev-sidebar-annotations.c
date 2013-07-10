@@ -375,9 +375,9 @@ job_finished_callback (EvJobAnnots          *job,
             { EV_ANNOTATION_TYPE_ATTACHMENT, "Attachment" },
             { EV_ANNOTATION_TYPE_TEXT_MARKUP, "Text Markup"},
             */
-            "Unknown", "Text", "Attachment", "Text Markup"
+            "Unknown", "Text", "Attachment", "Text Markup", "Line"
         };
-                
+ 
 	if (!job->annots) {
 		GtkTreeModel *list;
 
@@ -432,12 +432,15 @@ job_finished_callback (EvJobAnnots          *job,
 			GtkTreeIter   child_iter;
 			GdkPixbuf    *pixbuf = NULL;
                         EvAnnotationType evtype;
-                    
+
 			annot = ((EvMapping *)(ll->data))->data;
-			if (!EV_IS_ANNOTATION_MARKUP (annot))
+			if (!EV_IS_ANNOTATION_MARKUP (annot) &&
+			    !EV_IS_ANNOTATION_LINE (annot) && EV_IS_ANNOTATION_ATTACHMENT (annot))
 				continue;
 
-			label = ev_annotation_markup_get_label (EV_ANNOTATION_MARKUP (annot));
+			if (EV_IS_ANNOTATION_TEXT_MARKUP (annot))
+				label = ev_annotation_markup_get_label (EV_ANNOTATION_MARKUP (annot));
+
 			modified = ev_annotation_get_modified (annot);
 			if (modified) {
 				markup = g_strdup_printf ("%s - %s",
@@ -464,6 +467,12 @@ job_finished_callback (EvJobAnnots          *job,
                                                                                          GTK_ICON_SIZE_BUTTON);
 				}
 				pixbuf = attachment_icon;
+			} else if (EV_IS_ANNOTATION_LINE (annot)) {
+				g_print ("line\n");
+				text_icon = gtk_widget_render_icon_pixbuf (priv->tree_view,
+				                                           GTK_STOCK_FILE,
+				                                           GTK_ICON_SIZE_BUTTON);
+				pixbuf = text_icon;
 			}
 
 			/* gtk_tree_store_append (model, &child_iter, &iter);

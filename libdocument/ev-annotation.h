@@ -66,6 +66,13 @@ G_BEGIN_DECLS
 #define EV_IS_ANNOTATION_TEXT_MARKUP_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_TEXT_MARKUP))
 #define EV_ANNOTATION_TEXT_MARKUP_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_TEXT_MARKUP, EvAnnotationTextMarkupClass))
 
+/* EvAnnotationLine */
+#define EV_TYPE_ANNOTATION_LINE              (ev_annotation_line_get_type())
+#define EV_ANNOTATION_LINE(object)           (G_TYPE_CHECK_INSTANCE_CAST((object), EV_TYPE_ANNOTATION_LINE, EvAnnotationLine))
+#define EV_ANNOTATION_LINE_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST((klass), EV_TYPE_ANNOTATION_LINE, EvAnnotationLineClass))
+#define EV_IS_ANNOTATION_LINE(object)        (G_TYPE_CHECK_INSTANCE_TYPE((object), EV_TYPE_ANNOTATION_LINE))
+#define EV_IS_ANNOTATION_LINE_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_LINE))
+#define EV_ANNOTATION_LINE_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_LINE, EvAnnotationLineClass))
 
 /* EvAnnotationText */
 #define EV_TYPE_ANNOTATION_ATTACHMENT              (ev_annotation_attachment_get_type())
@@ -87,6 +94,9 @@ typedef struct _EvAnnotationTextClass       EvAnnotationTextClass;
 typedef struct _EvAnnotationTextMarkup      EvAnnotationTextMarkup;
 typedef struct _EvAnnotationTextMarkupClass EvAnnotationTextMarkupClass;
 
+typedef struct _EvAnnotationLine            EvAnnotationLine;
+typedef struct _EvAnnotationLineClass       EvAnnotationLineClass;
+
 typedef struct _EvAnnotationAttachment      EvAnnotationAttachment;
 typedef struct _EvAnnotationAttachmentClass EvAnnotationAttachmentClass;
 
@@ -94,7 +104,8 @@ typedef enum {
 	EV_ANNOTATION_TYPE_UNKNOWN,
 	EV_ANNOTATION_TYPE_TEXT,
 	EV_ANNOTATION_TYPE_ATTACHMENT,
-	EV_ANNOTATION_TYPE_TEXT_MARKUP
+	EV_ANNOTATION_TYPE_TEXT_MARKUP,
+	EV_ANNOTATION_TYPE_LINE
 } EvAnnotationType;
 
 typedef enum {
@@ -171,6 +182,10 @@ gboolean             ev_annotation_text_set_is_open          (EvAnnotationText  
 /* EvAnnotationTextMarkup */
 GType                ev_annotation_text_markup_get_type      (void) G_GNUC_CONST;
 EvAnnotation        *ev_annotation_text_markup_new           (EvPage                 *page);
+
+/* EvAnnotationLine */
+GType                ev_annotation_line_get_type             (void) G_GNUC_CONST;
+EvAnnotation        *ev_annotation_line_new                  (EvPage                 *page);
 
 /* EvAnnotationAttachment */
 GType                ev_annotation_attachment_get_type       (void) G_GNUC_CONST;

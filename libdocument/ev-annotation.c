@@ -64,6 +64,14 @@ struct _EvAnnotationTextMarkupClass {
         EvAnnotationClass parent_class;
 };
 
+struct _EvAnnotationLine {
+        EvAnnotation parent;
+};
+
+struct _EvAnnotationLineClass {
+        EvAnnotationClass parent_class;
+};
+
 struct _EvAnnotationAttachment {
 	EvAnnotation parent;
 
@@ -129,6 +137,8 @@ G_DEFINE_TYPE_WITH_CODE (EvAnnotationAttachment, ev_annotation_attachment, EV_TY
 		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
 					ev_annotation_attachment_markup_iface_init);
 	 });
+
+G_DEFINE_TYPE (EvAnnotationLine, ev_annotation_line, EV_TYPE_ANNOTATION)
 
 /* EvAnnotation */
 static void
@@ -1129,6 +1139,26 @@ EvAnnotation *
 ev_annotation_text_markup_new (EvPage *page)
 {
 	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_TEXT_MARKUP,
+					   "page", page,
+					   NULL));
+}
+
+/* EvAnnotationLine */
+static void
+ev_annotation_line_init (EvAnnotationLine *annot)
+{
+        EV_ANNOTATION (annot)->type = EV_ANNOTATION_TYPE_LINE;
+}
+
+static void
+ev_annotation_line_class_init (EvAnnotationLineClass *klass)
+{
+}
+
+EvAnnotation *
+ev_annotation_line_new (EvPage *page)
+{
+	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_LINE,
 					   "page", page,
 					   NULL));
 }

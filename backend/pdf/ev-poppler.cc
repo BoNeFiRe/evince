@@ -2847,9 +2847,16 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 	        case POPPLER_ANNOT_WIDGET:
 			/* Ignore link and widgets annots since they are already handled */
 			break;
+		case POPPLER_ANNOT_LINE:
+		{
+			g_print ("a new line\n");
+			ev_annot = ev_annotation_line_new (page);
+			// g_object_set (ev_annot, "label", "line", NULL);
+			g_print("=> %s", poppler_annot_get_name (poppler_annot));
+		}
+			break;
 		case POPPLER_ANNOT_3D:
 		case POPPLER_ANNOT_CARET:
-		case POPPLER_ANNOT_LINE:
 		case POPPLER_ANNOT_SCREEN:
 		case POPPLER_ANNOT_SOUND:
 		case POPPLER_ANNOT_STAMP: {
