@@ -176,8 +176,8 @@ ev_toolbar_constructed (GObject *object)
         action_group = ev_window_get_main_action_group (ev_toolbar->priv->window);
         ui_manager = ev_window_get_ui_manager (ev_toolbar->priv->window);
 
-	/* Bookshelf */
-	action = gtk_action_group_get_action (action_group, "ViewBookshelf");
+	/* View of recent items */
+	action = gtk_action_group_get_action (action_group, "RecentViewShow");
 	button = ev_toolbar_create_toggle_button (ev_toolbar, action);
 	tool_item = GTK_WIDGET (gtk_tool_item_new ());
 	gtk_container_add (GTK_CONTAINER (tool_item), button);

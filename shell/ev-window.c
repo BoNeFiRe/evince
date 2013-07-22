@@ -91,7 +91,7 @@
 #include "ev-bookmark-action.h"
 #include "ev-zoom-action.h"
 #include "ev-toolbar.h"
-#include "ev-bookshelf.h"
+#include "ev-recent-view.h"
 
 #ifdef ENABLE_DBUS
 #include "ev-gdbus-generated.h"
@@ -192,8 +192,8 @@ struct _EvWindowPrivate {
 	GtkWidget    *attachment_popup;
 	GList        *attach_list;
 
-	/* For Bookshelf */
-	EvBookshelf *bookshelf;
+	/* For bookshelf view of recent items*/
+	EvRecentView *recent_view;
 	
 	/* Document */
 	EvDocumentModel *model;
@@ -382,8 +382,8 @@ static void     ev_window_setup_bookmarks               (EvWindow         *windo
 
 static void     ev_window_show_find_bar                 (EvWindow         *ev_window);
 static void     ev_window_close_find_bar                (EvWindow         *ev_window);
-static void     ev_window_try_swap_out_bookshelf        (EvWindow         *ev_window);
-static void     bookshelf_item_activated_cb             (EvBookshelf      *bookshelf,
+static void     ev_window_try_swap_out_recent_view      (EvWindow         *ev_window);
+static void     recent_view_item_activated_cb           (EvRecentView     *recent_view,
                                                          const char       *uri,
                                                          EvWindow         *ev_window);
 
@@ -425,7 +425,7 @@ ev_window_setup_action_sensitivity (EvWindow *ev_window)
 	gboolean has_pages = FALSE;
 	gboolean can_find = FALSE;
 
-	if (document && !ev_window->priv->bookshelf) {
+	if (document && !ev_window->priv->recent_view) {
 		has_document = TRUE;
 		has_pages = ev_document_get_n_pages (document) > 0;
 		info = ev_document_get_info (document);
@@ -514,16 +514,16 @@ ev_window_update_actions_sensitivity (EvWindow *ev_window)
 	gboolean can_find_in_page = FALSE;
 	gboolean dual_mode = FALSE;
 
-	if (ev_window->priv->document && !ev_window->priv->bookshelf) {
+	if (ev_window->priv->document && !ev_window->priv->recent_view) {
 		page = ev_document_model_get_page (ev_window->priv->model);
 		n_pages = ev_document_get_n_pages (ev_window->priv->document);
 		has_pages = n_pages > 0;
 		dual_mode = ev_document_model_get_dual_page (ev_window->priv->model);
 	}
 
-	ev_window_set_action_sensitive (ev_window, "ViewBookshelf", 
+	ev_window_set_action_sensitive (ev_window, "RecentViewShow", 
 	                                ev_window->priv->document ||
-	                                !ev_window->priv->bookshelf);
+	                                !ev_window->priv->recent_view);
 	can_find_in_page = (ev_window->priv->find_job &&
 			    ev_job_find_has_results (EV_JOB_FIND (ev_window->priv->find_job)));
 
@@ -1661,7 +1661,7 @@ ev_window_load_job_cb (EvJob *job,
 	g_assert (job_load->uri);
 
 	ev_window_hide_loading_message (ev_window);
-	ev_window_try_swap_out_bookshelf (ev_window);
+	ev_window_try_swap_out_recent_view (ev_window);
 
 	/* Success! */
 	if (!ev_job_is_failed (job)) {
@@ -2197,7 +2197,7 @@ ev_window_open_document (EvWindow       *ev_window,
 	ev_window_close_dialogs (ev_window);
 	ev_window_clear_load_job (ev_window);
 	ev_window_clear_local_uri (ev_window);
-	ev_window_try_swap_out_bookshelf (ev_window);
+	ev_window_try_swap_out_recent_view (ev_window);
 
 	if (ev_window->priv->monitor) {
 		g_object_unref (ev_window->priv->monitor);
@@ -4707,13 +4707,13 @@ ev_window_cmd_bookmark_activate (GtkAction *action,
 }
 
 static void
-ev_window_cmd_toggle_bookshelf (GtkAction *action,
-                                EvWindow  *ev_window)
+ev_window_cmd_toggle_recent_view (GtkAction *action,
+                                  EvWindow  *ev_window)
 {
-	if (!ev_window->priv->bookshelf)
-		ev_window_show_bookshelf (ev_window);
+	if (!ev_window->priv->recent_view)
+		ev_window_show_recent_view (ev_window);
 	else {
-		ev_window_try_swap_out_bookshelf (ev_window);
+		ev_window_try_swap_out_recent_view (ev_window);
 		ev_window_setup_action_sensitivity (ev_window);
 	}
 	return;
@@ -5371,24 +5371,24 @@ find_sidebar_result_activated_cb (EvFindSidebar *find_sidebar,
 }
 
 static void
-ev_window_try_swap_out_bookshelf (EvWindow *ev_window)
+ev_window_try_swap_out_recent_view (EvWindow *ev_window)
 {
-	if (ev_window->priv->bookshelf)
+	if (ev_window->priv->recent_view)
 	{
-		gtk_widget_hide (GTK_WIDGET (ev_window->priv->bookshelf));
-		g_object_unref (ev_window->priv->bookshelf);
-		ev_window->priv->bookshelf = NULL;
+		gtk_widget_hide (GTK_WIDGET (ev_window->priv->recent_view));
+		g_object_unref (ev_window->priv->recent_view);
+		ev_window->priv->recent_view = NULL;
 	}
 	gtk_widget_show (ev_window->priv->hpaned);
 }
 
 static void
-bookshelf_item_activated_cb (EvBookshelf *bookshelf,
-                             const char  *uri,
-                             EvWindow    *ev_window)
+recent_view_item_activated_cb (EvRecentView *recent_view,
+                               const char   *uri,
+                               EvWindow     *ev_window)
 {
 	if (ev_window->priv->uri && strcmp (ev_window->priv->uri, uri) == 0)
-		ev_window_try_swap_out_bookshelf (ev_window);
+		ev_window_try_swap_out_recent_view (ev_window);
 	ev_application_open_uri_at_dest (EV_APP, uri,
 					 gtk_window_get_screen (GTK_WINDOW (ev_window)),
 					 NULL, 0, NULL, gtk_get_current_event_time ());
@@ -6117,10 +6117,10 @@ static const GtkActionEntry entries[] = {
 	{ "ViewAutoscroll", GTK_STOCK_MEDIA_PLAY, N_("Auto_scroll"), NULL, NULL,
 	  G_CALLBACK (ev_window_cmd_view_autoscroll) },
 
-	/* Bookshelf */
-	{ "ViewBookshelf", "view-grid-symbolic", N_("_Bookshelf"), NULL,
-	  N_("Toggle between bookshelf and open document"),
-	  G_CALLBACK (ev_window_cmd_toggle_bookshelf) },
+	/* View of recent items */
+	{ "RecentViewShow", "view-grid-symbolic", N_("Recent Items"), NULL,
+	  N_("Toggle between view of recent items and open document"),
+	  G_CALLBACK (ev_window_cmd_toggle_recent_view) },
 
         /* Go menu */
         { "GoPreviousPage", "go-up-symbolic", N_("_Previous Page"), "<control>Page_Up",
@@ -7385,7 +7385,7 @@ ev_window_init (EvWindow *ev_window)
 #endif /* ENABLE_DBUS */
 
 	ev_window->priv->model = ev_document_model_new ();
-	ev_window->priv->bookshelf = NULL;
+	ev_window->priv->recent_view = NULL;
 
 	ev_window->priv->page_mode = PAGE_MODE_DOCUMENT;
 	ev_window->priv->chrome = EV_CHROME_NORMAL;
@@ -7816,22 +7816,22 @@ ev_window_new (void)
 }
 
 void
-ev_window_show_bookshelf (EvWindow *ev_window)
+ev_window_show_recent_view (EvWindow *ev_window)
 {
 	gtk_widget_hide (ev_window->priv->hpaned);
-	if (!ev_window->priv->bookshelf) {
-		ev_window->priv->bookshelf = ev_bookshelf_new ();
-		g_object_ref (ev_window->priv->bookshelf);
-		g_signal_connect_object (ev_window->priv->bookshelf,
+	if (!ev_window->priv->recent_view) {
+		ev_window->priv->recent_view = ev_recent_view_new ();
+		g_object_ref (ev_window->priv->recent_view);
+		g_signal_connect_object (ev_window->priv->recent_view,
 		                         "item-activated",
-		                         G_CALLBACK (bookshelf_item_activated_cb),
+		                         G_CALLBACK (recent_view_item_activated_cb),
 		                         ev_window, 0);
 		gtk_box_pack_start (GTK_BOX (ev_window->priv->main_box),
-		                    GTK_WIDGET (ev_window->priv->bookshelf),
+		                    GTK_WIDGET (ev_window->priv->recent_view),
 		                    TRUE, TRUE, 0);
 	}
 
-	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
+	gtk_widget_show (GTK_WIDGET (ev_window->priv->recent_view));
 	ev_window_setup_action_sensitivity (ev_window);
 
 	return;
