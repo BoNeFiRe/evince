@@ -570,6 +570,14 @@ ev_bookshelf_rebuild (EvBookshelf *ev_bookshelf)
 }
 
 static void
+ev_bookshelf_constructed (GObject *object)
+{
+	EvBookshelf *ev_bookshelf = EV_BOOKSHELF (object);
+	G_OBJECT_CLASS (ev_bookshelf_parent_class)->constructed (object);
+	ev_bookshelf_rebuild (ev_bookshelf);
+}
+
+static void
 ev_bookshelf_init (EvBookshelf *ev_bookshelf)
 {
 	ev_bookshelf->priv = G_TYPE_INSTANCE_GET_PRIVATE (ev_bookshelf, EV_TYPE_BOOKSHELF, EvBookshelfPrivate);
@@ -600,7 +608,6 @@ ev_bookshelf_init (EvBookshelf *ev_bookshelf)
 	                          "changed",
 	                          G_CALLBACK (ev_bookshelf_refresh),
 				  ev_bookshelf);
-	ev_bookshelf_rebuild (ev_bookshelf);
 }
 
 static void
@@ -610,6 +617,7 @@ ev_bookshelf_class_init (EvBookshelfClass *klass)
 
 	g_object_class->get_property = ev_bookshelf_get_property;
 	g_object_class->set_property = ev_bookshelf_set_property;
+        g_object_class->constructed = ev_bookshelf_constructed;
 	g_object_class->dispose = ev_bookshelf_dispose;
 
 	/* Signals */
