@@ -410,8 +410,8 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 
 		ev_job_scheduler_push_job (EV_JOB (job_thumbnail), EV_JOB_PRIORITY_HIGH);
 
-		if (metadata) {
-			ev_metadata_set_string (metadata, "author", info->author == NULL ? _("") : info->author);
+		if (metadata) { 
+			ev_metadata_set_string (metadata, "author", info->author == NULL ? "" : info->author);
 			g_object_unref (metadata);
 		}
 
@@ -427,7 +427,7 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 		if (metadata) {
 			GdkPixbuf *thumbnail;
 
-			ev_metadata_set_string (metadata, "author", _(""));
+			ev_metadata_set_string (metadata, "author", "");
 			gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
 				            iter,
 				            GD_MAIN_COLUMN_ICON, &thumbnail,
@@ -497,7 +497,7 @@ ev_bookshelf_refresh (EvBookshelf *ev_bookshelf)
 
 		load_document:
 
-			author = _("");
+			author = "";
 			thumbnail = gtk_recent_info_get_icon (info, ICON_VIEW_SIZE);
 			job_load = ev_job_load_new (uri);
 			g_signal_connect (job_load, "finished",
