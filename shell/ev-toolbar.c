@@ -178,7 +178,7 @@ ev_toolbar_constructed (GObject *object)
 
 	/* View of recent items */
 	action = gtk_action_group_get_action (action_group, "RecentViewShow");
-	button = ev_toolbar_create_toggle_button (ev_toolbar, action);
+	button = ev_toolbar_create_button (ev_toolbar, action);
 	tool_item = GTK_WIDGET (gtk_tool_item_new ());
 	gtk_container_add (GTK_CONTAINER (tool_item), button);
 	gtk_widget_show (button);
