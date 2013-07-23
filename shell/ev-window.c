@@ -92,6 +92,7 @@
 #include "ev-zoom-action.h"
 #include "ev-toolbar.h"
 #include "ev-recent-view.h"
+#include "ev-minimal-toolbar.h"
 
 #ifdef ENABLE_DBUS
 #include "ev-gdbus-generated.h"
@@ -172,6 +173,7 @@ struct _EvWindowPrivate {
 
 	/* UI Builders */
 	GtkActionGroup   *action_group;
+	GtkActionGroup   *minimal_toolbar_action_group;
 	GtkActionGroup   *view_popup_action_group;
 	GtkActionGroup   *attachment_popup_action_group;
 	GtkActionGroup   *zoom_selector_popup_action_group;
@@ -194,6 +196,7 @@ struct _EvWindowPrivate {
 
 	/* For bookshelf view of recent items*/
 	EvRecentView *recent_view;
+	GtkWidget *minimal_toolbar;
 	
 	/* Document */
 	EvDocumentModel *model;
@@ -513,6 +516,7 @@ ev_window_update_actions_sensitivity (EvWindow *ev_window)
 	gboolean presentation_mode;
 	gboolean can_find_in_page = FALSE;
 	gboolean dual_mode = FALSE;
+	gboolean fullscreen_mode = FALSE;
 
 	if (ev_window->priv->document && !ev_window->priv->recent_view) {
 		page = ev_document_model_get_page (ev_window->priv->model);
@@ -521,9 +525,11 @@ ev_window_update_actions_sensitivity (EvWindow *ev_window)
 		dual_mode = ev_document_model_get_dual_page (ev_window->priv->model);
 	}
 
-	ev_window_set_action_sensitive (ev_window, "RecentViewShow", 
-	                                ev_window->priv->document ||
-	                                !ev_window->priv->recent_view);
+	fullscreen_mode = ev_document_model_get_fullscreen (ev_window->priv->model);
+	ev_window_set_action_sensitive (ev_window, "RecentViewShow",
+	                                ev_window->priv->document &&
+	                                !ev_window->priv->recent_view &&
+	                                !fullscreen_mode);
 	can_find_in_page = (ev_window->priv->find_job &&
 			    ev_job_find_has_results (EV_JOB_FIND (ev_window->priv->find_job)));
 
@@ -4256,6 +4262,7 @@ ev_window_run_fullscreen (EvWindow *window)
 
 	if (window->priv->metadata && !ev_window_is_empty (window))
 		ev_metadata_set_boolean (window->priv->metadata, "fullscreen", TRUE);
+	ev_window_update_actions_sensitivity (window);
 }
 
 static void
@@ -4300,6 +4307,7 @@ ev_window_stop_fullscreen (EvWindow *window,
 
 	if (window->priv->metadata && !ev_window_is_empty (window))
 		ev_metadata_set_boolean (window->priv->metadata, "fullscreen", FALSE);
+	ev_window_update_actions_sensitivity (window);
 }
 
 static void
@@ -4707,15 +4715,10 @@ ev_window_cmd_bookmark_activate (GtkAction *action,
 }
 
 static void
-ev_window_cmd_toggle_recent_view (GtkAction *action,
+ev_window_cmd_show_recent_view (GtkAction *action,
                                   EvWindow  *ev_window)
 {
-	if (!ev_window->priv->recent_view)
-		ev_window_show_recent_view (ev_window);
-	else {
-		ev_window_try_swap_out_recent_view (ev_window);
-		ev_window_setup_action_sensitivity (ev_window);
-	}
+	ev_window_show_recent_view (ev_window);
 	return;
 }
 
@@ -5376,10 +5379,12 @@ ev_window_try_swap_out_recent_view (EvWindow *ev_window)
 	if (ev_window->priv->recent_view)
 	{
 		gtk_widget_hide (GTK_WIDGET (ev_window->priv->recent_view));
+		gtk_widget_hide (GTK_WIDGET (ev_window->priv->minimal_toolbar));
 		g_object_unref (ev_window->priv->recent_view);
 		ev_window->priv->recent_view = NULL;
 	}
 	gtk_widget_show (ev_window->priv->hpaned);
+	gtk_widget_show (ev_window->priv->toolbar);
 }
 
 static void
@@ -5842,6 +5847,10 @@ ev_window_dispose (GObject *object)
 		priv->action_group = NULL;
 	}
 
+	if (priv->minimal_toolbar_action_group) {
+		g_object_unref (priv->minimal_toolbar_action_group);
+		priv->minimal_toolbar_action_group = NULL;
+	}
 	if (priv->view_popup_action_group) {
 		g_object_unref (priv->view_popup_action_group);
 		priv->view_popup_action_group = NULL;
@@ -6119,8 +6128,8 @@ static const GtkActionEntry entries[] = {
 
 	/* View of recent items */
 	{ "RecentViewShow", "view-grid-symbolic", N_("Recent Items"), NULL,
-	  N_("Toggle between view of recent items and open document"),
-	  G_CALLBACK (ev_window_cmd_toggle_recent_view) },
+	  N_("Show recent items"),
+	  G_CALLBACK (ev_window_cmd_show_recent_view) },
 
         /* Go menu */
         { "GoPreviousPage", "go-up-symbolic", N_("_Previous Page"), "<control>Page_Up",
@@ -6275,6 +6284,19 @@ static const GtkToggleActionEntry zoom_selector_popup_actions[] = {
 	  G_CALLBACK (ev_window_cmd_view_fit_width) },
 	{ "ViewZoomAutomatic", NULL, N_("_Automatic"), NULL, NULL,
 	  G_CALLBACK (ev_window_cmd_view_zoom_automatic) }
+};
+
+/* Items for the minimal toolbar */
+static const GtkActionEntry minimal_toolbar_entries [] = {
+	{ "ToolbarOpenDocument", "document-open-symbolic", N_("_Open…"), NULL,
+	  N_("Open an existing document"),
+	  G_CALLBACK (ev_window_cmd_file_open) },
+	{ "ToolbarAbout", "dialog-information-symbolic", N_("_About"), NULL,
+	  N_("About "),
+	  G_CALLBACK (ev_window_cmd_help_about) },
+	{ "ToolbarCloseWindow", "window-close-symbolic", N_("Close"), NULL,
+	  N_("Close this window"),
+	  G_CALLBACK (ev_window_cmd_file_close_window) },
 };
 
 static void
@@ -7420,6 +7442,12 @@ ev_window_init (EvWindow *ev_window)
 		gtk_ui_manager_get_accel_group (ev_window->priv->ui_manager);
 	gtk_window_add_accel_group (GTK_WINDOW (ev_window), accel_group);
 
+	action_group = gtk_action_group_new ("MinimalToolbarActions");
+	ev_window->priv->minimal_toolbar_action_group = action_group;
+	gtk_action_group_set_translation_domain (action_group, NULL);
+	gtk_action_group_add_actions (action_group, minimal_toolbar_entries,
+	                              G_N_ELEMENTS (minimal_toolbar_entries), ev_window);
+
 	action_group = gtk_action_group_new ("ViewPopupActions");
 	ev_window->priv->view_popup_action_group = action_group;
 	gtk_action_group_set_translation_domain (action_group, NULL);
@@ -7488,6 +7516,13 @@ ev_window_init (EvWindow *ev_window)
 	gtk_box_pack_start (GTK_BOX (ev_window->priv->main_box),
 			    ev_window->priv->find_bar,
 			    FALSE, TRUE, 0);
+	
+	ev_window->priv->minimal_toolbar = ev_minimal_toolbar_new (ev_window);
+	gtk_widget_set_halign (ev_window->priv->minimal_toolbar, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (ev_window->priv->minimal_toolbar, GTK_ALIGN_START);
+	gtk_box_pack_start (GTK_BOX (ev_window->priv->main_box),
+	                    ev_window->priv->minimal_toolbar,
+	                    FALSE, TRUE, 0);
 
 	/* Add the main area */
 	ev_window->priv->hpaned = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
@@ -7819,6 +7854,7 @@ void
 ev_window_show_recent_view (EvWindow *ev_window)
 {
 	gtk_widget_hide (ev_window->priv->hpaned);
+	gtk_widget_hide (ev_window->priv->toolbar);
 	if (!ev_window->priv->recent_view) {
 		ev_window->priv->recent_view = ev_recent_view_new ();
 		g_object_ref (ev_window->priv->recent_view);
@@ -7831,6 +7867,7 @@ ev_window_show_recent_view (EvWindow *ev_window)
 		                    TRUE, TRUE, 0);
 	}
 
+	gtk_widget_show (ev_window->priv->minimal_toolbar);
 	gtk_widget_show (GTK_WIDGET (ev_window->priv->recent_view));
 	ev_window_setup_action_sensitivity (ev_window);
 
@@ -7869,4 +7906,11 @@ ev_window_get_zoom_selector_action_group (EvWindow *ev_window)
 	g_return_val_if_fail (EV_WINDOW (ev_window), NULL);
 
 	return ev_window->priv->zoom_selector_popup_action_group;
+}
+
+ev_window_get_minimal_toolbar_action_group (EvWindow *ev_window)
+{
+	g_return_val_if_fail (EV_WINDOW (ev_window), NULL);
+
+	return ev_window->priv->minimal_toolbar_action_group;
 }

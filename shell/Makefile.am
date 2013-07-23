@@ -35,6 +35,8 @@ evince_SOURCES=				\
 	ev-message-area.h		\
 	ev-metadata.c			\
 	ev-metadata.h			\
+	ev-minimal-toolbar.c		\
+	ev-minimal-toolbar.h		\
 	ev-password-view.h		\
 	ev-password-view.c		\
 	ev-progress-message-area.h	\
