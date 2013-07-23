@@ -91,6 +91,7 @@
 #include "ev-bookmark-action.h"
 #include "ev-zoom-action.h"
 #include "ev-toolbar.h"
+#include "ev-bookshelf.h"
 
 #ifdef ENABLE_DBUS
 #include "ev-gdbus-generated.h"
@@ -191,6 +192,9 @@ struct _EvWindowPrivate {
 	GtkWidget    *attachment_popup;
 	GList        *attach_list;
 
+	/* For Bookshelf */
+	EvBookshelf *bookshelf;
+	
 	/* Document */
 	EvDocumentModel *model;
 	char *uri;
@@ -378,6 +382,10 @@ static void     ev_window_setup_bookmarks               (EvWindow         *windo
 
 static void     ev_window_show_find_bar                 (EvWindow         *ev_window);
 static void     ev_window_close_find_bar                (EvWindow         *ev_window);
+static void     ev_window_try_swap_out_bookshelf        (EvWindow         *ev_window);
+static void     bookshelf_item_activated_cb             (EvBookshelf      *bookshelf,
+                                                         const char       *uri,
+                                                         EvWindow         *ev_window);
 
 static gchar *nautilus_sendto = NULL;
 
@@ -1652,6 +1660,9 @@ ev_window_load_job_cb (EvJob *job,
 
 	/* Success! */
 	if (!ev_job_is_failed (job)) {
+
+		ev_window_try_swap_out_bookshelf (ev_window);
+
 		ev_document_model_set_document (ev_window->priv->model, document);
 
 #ifdef ENABLE_DBUS
@@ -2183,6 +2194,7 @@ ev_window_open_document (EvWindow       *ev_window,
 	ev_window_close_dialogs (ev_window);
 	ev_window_clear_load_job (ev_window);
 	ev_window_clear_local_uri (ev_window);
+	ev_window_try_swap_out_bookshelf (ev_window);
 
 	if (ev_window->priv->monitor) {
 		g_object_unref (ev_window->priv->monitor);
@@ -5343,6 +5355,35 @@ find_sidebar_result_activated_cb (EvFindSidebar *find_sidebar,
 }
 
 static void
+ev_window_try_swap_out_bookshelf (EvWindow *ev_window)
+{
+	GtkWidget *widget;
+
+	widget = gtk_bin_get_child (GTK_BIN (ev_window->priv->scrolled_window));
+
+	if (ev_window->priv->bookshelf)
+	{
+		gtk_container_remove (GTK_CONTAINER (ev_window->priv->scrolled_window), widget);
+		g_object_unref (ev_window->priv->bookshelf);
+		ev_window->priv->bookshelf = NULL;
+
+		gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
+	                   ev_window->priv->view);
+	}
+}
+
+static void
+bookshelf_item_activated_cb (EvBookshelf *bookshelf,
+                             const char  *uri,
+                             EvWindow    *ev_window)
+{
+	ev_application_open_uri_at_dest (EV_APP, uri,
+					 gtk_window_get_screen (GTK_WINDOW (ev_window)),
+					 NULL, 0, NULL, gtk_get_current_event_time ());
+	return;
+}
+
+static void
 ev_window_update_find_status_message (EvWindow *ev_window)
 {
 	gchar *message;
@@ -7609,9 +7650,6 @@ ev_window_init (EvWindow *ev_window)
 	g_object_ref (ev_window->priv->view);
 	g_object_ref (ev_window->priv->password_view);
 
-	gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
-			   ev_window->priv->view);
-
 	/* Connect to model signals */
 	g_signal_connect_swapped (ev_window->priv->model,
 				  "page-changed",
@@ -7732,6 +7770,17 @@ ev_window_init (EvWindow *ev_window)
 			   NULL, 0,
 			   GDK_ACTION_COPY);
 	gtk_drag_dest_add_uri_targets (GTK_WIDGET (ev_window));
+
+	ev_window->priv->bookshelf = ev_bookshelf_new ();
+	g_object_ref (ev_window->priv->bookshelf);
+	gtk_widget_show (GTK_WIDGET (ev_window->priv->bookshelf));
+	gtk_container_add (GTK_CONTAINER (ev_window->priv->scrolled_window),
+			   GTK_WIDGET (ev_window->priv->bookshelf));
+
+	g_signal_connect_object (ev_window->priv->bookshelf,
+	                         "item-activated",
+	                         G_CALLBACK (bookshelf_item_activated_cb),
+	                         ev_window, 0);
 }
 
 /**
