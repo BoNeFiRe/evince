@@ -728,7 +728,7 @@ ev_application_open_window (EvApplication *application,
 			    guint32        timestamp)
 {
 	GtkWidget *new_window = ev_window_new ();
-	ev_window_show_recent_view (new_window);
+	ev_window_show_recent_view (EV_WINDOW (new_window));
 #ifdef GDK_WINDOWING_X11
 	GdkWindow *gdk_window;
 #endif
