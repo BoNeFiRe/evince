@@ -15,8 +15,6 @@ evince_SOURCES=				\
 	ev-bookmarks.c			\
 	ev-bookmark-action.h		\
 	ev-bookmark-action.c		\
-	ev-bookshelf.c			\
-	ev-bookshelf.h			\
 	ev-application.c		\
 	ev-application.h		\
 	ev-file-monitor.h		\
@@ -49,6 +47,8 @@ evince_SOURCES=				\
 	ev-properties-license.h		\
 	ev-open-recent-action.c		\
 	ev-open-recent-action.h		\
+	ev-recent-view.c                \
+	ev-recent-view.h                \
 	ev-toolbar.c			\
 	ev-toolbar.h			\
 	ev-utils.c			\
