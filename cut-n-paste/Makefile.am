@@ -1,3 +1,3 @@
-SUBDIRS = smclient gimpcellrenderertoggle synctex
+SUBDIRS = smclient gimpcellrenderertoggle synctex libgd
 
 -include $(top_srcdir)/git.mk

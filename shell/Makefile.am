@@ -97,6 +97,7 @@ evince_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-I$(top_builddir) \
 	-I$(top_srcdir)/cut-n-paste/gimpcellrenderertoggle \
+	-I$(top_srcdir)/cut-n-paste/libgd/			\
 	-I$(top_srcdir)/cut-n-paste/smclient \
 	-I$(top_srcdir)/libdocument \
 	-I$(top_builddir)/libdocument \
@@ -121,6 +122,7 @@ endif
 evince_LDADD=										\
 	$(top_builddir)/cut-n-paste/gimpcellrenderertoggle/libgimpcellrenderertoggle.la	\
 	$(top_builddir)/cut-n-paste/smclient/libsmclient.la				\
+	$(top_builddir)/cut-n-paste/libgd/libgd.la					\
 	$(top_builddir)/properties/libevproperties.la					\
 	$(top_builddir)/libdocument/libevdocument3.la					\
 	$(top_builddir)/libview/libevview3.la						\
