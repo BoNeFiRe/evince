@@ -90,18 +90,6 @@ ev_recent_view_dispose (GObject *obj)
 	G_OBJECT_CLASS (ev_recent_view_parent_class)->dispose (obj);
 }
 
-static void
-ev_recent_view_set_property (GObject      *object,
-                           guint         prop_id,
-                           const GValue *value,
-                           GParamSpec   *pspec)
-{
-	switch (prop_id) {
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-	}
-}
-
 static gboolean
 metadata_is_stale (EvMetadata *metadata, GFile *file)
 {
@@ -158,18 +146,6 @@ save_thumbnail (GdkPixbuf  *pixbuf,
 
 	if (error)
 		g_error_free (error);
-}
-
-static void
-ev_recent_view_get_property (GObject    *object,
-                           guint       prop_id,
-                           GValue     *value,
-                           GParamSpec *pspec)
-{
-	switch (prop_id) {
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-	}
 }
 
 static gboolean
@@ -615,8 +591,6 @@ ev_recent_view_class_init (EvRecentViewClass *klass)
 {
 	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
 
-	g_object_class->get_property = ev_recent_view_get_property;
-	g_object_class->set_property = ev_recent_view_set_property;
         g_object_class->constructed = ev_recent_view_constructed;
 	g_object_class->dispose = ev_recent_view_dispose;
 
