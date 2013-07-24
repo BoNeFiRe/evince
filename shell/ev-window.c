@@ -7855,6 +7855,7 @@ ev_window_show_recent_view (EvWindow *ev_window)
 {
 	gtk_widget_hide (ev_window->priv->hpaned);
 	gtk_widget_hide (ev_window->priv->toolbar);
+	gtk_widget_hide (ev_window->priv->find_bar);
 	if (!ev_window->priv->recent_view) {
 		ev_window->priv->recent_view = ev_recent_view_new ();
 		g_object_ref (ev_window->priv->recent_view);
