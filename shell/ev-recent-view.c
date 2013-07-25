@@ -91,7 +91,8 @@ ev_recent_view_dispose (GObject *obj)
 }
 
 static gboolean
-metadata_is_stale (EvMetadata *metadata, GFile *file)
+metadata_is_stale (EvMetadata *metadata,
+                   GFile *file)
 {
 	GFileInfo *info = NULL;
 	GError    *error = NULL;
@@ -150,9 +151,9 @@ save_thumbnail (GdkPixbuf  *pixbuf,
 
 static gboolean
 ev_recent_view_clear_job (GtkTreeModel *model,
-                        GtkTreePath *path,
-                        GtkTreeIter *iter,
-                        gpointer data)
+                          GtkTreePath *path,
+                          GtkTreeIter *iter,
+                          gpointer data)
 {
 	EvJob *job;
 
@@ -178,7 +179,8 @@ ev_recent_view_clear_model (EvRecentView *ev_recent_view)
 }
 
 static gint
-compare_recent_items (GtkRecentInfo *a, GtkRecentInfo *b)
+compare_recent_items (GtkRecentInfo *a,
+                      GtkRecentInfo *b)
 {
 	gboolean     has_ev_a, has_ev_b;
 	const gchar *evince = g_get_application_name ();
@@ -252,8 +254,8 @@ on_button_release_event (GtkWidget *view,
 			goto exit;
 
 		gtk_tree_model_get (GTK_TREE_MODEL (self->priv->list_store), &iter,
-			            GD_MAIN_COLUMN_URI, &uri,
-			            -1);
+		                    GD_MAIN_COLUMN_URI, &uri,
+		                    -1);
 		gtk_list_store_set (self->priv->list_store,
 		                    &iter,
 		                    GD_MAIN_COLUMN_SELECTED, TRUE,
@@ -314,11 +316,11 @@ thumbnail_job_completed_callback (EvJobThumbnail  *job,
 	                    -1);
 
 	gtk_list_store_set (priv->list_store,
-			    iter,
-			    GD_MAIN_COLUMN_ICON, pixbuf,
-			    EV_RECENT_VIEW_THUMBNAILED_COLUMN, TRUE,
-			    EV_RECENT_VIEW_JOB_COLUMN, NULL,
-			    -1);
+	                    iter,
+	                    GD_MAIN_COLUMN_ICON, pixbuf,
+	                    EV_RECENT_VIEW_THUMBNAILED_COLUMN, TRUE,
+	                    EV_RECENT_VIEW_JOB_COLUMN, NULL,
+	                    -1);
 
 	if (metadata) {
 		save_thumbnail (pixbuf, metadata);
@@ -353,8 +355,8 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 
 		ev_document_get_page_size (document, page, &width, &height);
 
-		scale = (gdouble)ICON_VIEW_SIZE / height < (gdouble)ICON_VIEW_SIZE / width ? 
-			(gdouble)ICON_VIEW_SIZE / height : (gdouble)ICON_VIEW_SIZE / width;
+		scale = (gdouble)ICON_VIEW_SIZE / height < (gdouble)ICON_VIEW_SIZE / width ?
+		        (gdouble)ICON_VIEW_SIZE / height : (gdouble)ICON_VIEW_SIZE / width;
 		job_thumbnail = ev_job_thumbnail_new (document,
 		                                      page,
 		                                      ev_document_model_get_rotation (model),
@@ -363,19 +365,19 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 		ev_job_thumbnail_set_has_frame (EV_JOB_THUMBNAIL (job_thumbnail), FALSE);
 
 		g_object_set_data_full (G_OBJECT (job_thumbnail), "tree_iter",
-					gtk_tree_iter_copy (iter),
-					(GDestroyNotify) gtk_tree_iter_free);
+		                        gtk_tree_iter_copy (iter),
+		                        (GDestroyNotify) gtk_tree_iter_free);
 
 		g_signal_connect (job_thumbnail, "finished",
 		                  G_CALLBACK (thumbnail_job_completed_callback),
 		                  ev_recent_view);
 
 		gtk_list_store_set (priv->list_store,
-				    iter,
-				    EV_RECENT_VIEW_THUMBNAILED_COLUMN, FALSE,
-				    EV_RECENT_VIEW_JOB_COLUMN, job_thumbnail,
+		                    iter,
+		                    EV_RECENT_VIEW_THUMBNAILED_COLUMN, FALSE,
+		                    EV_RECENT_VIEW_JOB_COLUMN, job_thumbnail,
 		                    EV_RECENT_VIEW_DOCUMENT_COLUMN, document,
-				    -1);
+		                    -1);
 
 		ev_job_scheduler_push_job (EV_JOB (job_thumbnail), EV_JOB_PRIORITY_HIGH);
 
@@ -389,17 +391,17 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 		                    -1);
 
 		gtk_list_store_set (priv->list_store,
-				    iter,
-				    EV_RECENT_VIEW_THUMBNAILED_COLUMN, TRUE,
-				    EV_RECENT_VIEW_JOB_COLUMN, NULL,
-				    -1);
+		                    iter,
+		                    EV_RECENT_VIEW_THUMBNAILED_COLUMN, TRUE,
+		                    EV_RECENT_VIEW_JOB_COLUMN, NULL,
+		                    -1);
 		if (metadata) {
 			GdkPixbuf *thumbnail;
 
 			gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
-				            iter,
-				            GD_MAIN_COLUMN_ICON, &thumbnail,
-				            -1);
+			                    iter,
+			                    GD_MAIN_COLUMN_ICON, &thumbnail,
+			                    -1);
 
 			if (thumbnail)
 				save_thumbnail (thumbnail, metadata);
@@ -452,7 +454,7 @@ ev_recent_view_refresh (EvRecentView *ev_recent_view)
 		if (ev_is_metadata_supported_for_file (file)) {
 			
 			metadata = ev_metadata_new (file);
-			if (metadata_is_stale (metadata, file) || 
+			if (metadata_is_stale (metadata, file) ||
 			    !ev_metadata_get_string (metadata, "thumbnail-path", &thumbnail_path))
 				goto load_document;
 
@@ -466,8 +468,8 @@ ev_recent_view_refresh (EvRecentView *ev_recent_view)
 			thumbnail = gtk_recent_info_get_icon (info, ICON_VIEW_SIZE);
 			job_load = ev_job_load_new (uri);
 			g_signal_connect (job_load, "finished",
-				          G_CALLBACK (document_load_job_completed_callback),
-				          ev_recent_view);
+			                  G_CALLBACK (document_load_job_completed_callback),
+			                  ev_recent_view);
 		}
 		access_time = gtk_recent_info_get_modified (info);
 
@@ -548,17 +550,17 @@ ev_recent_view_init (EvRecentView *ev_recent_view)
 	ev_recent_view->priv = G_TYPE_INSTANCE_GET_PRIVATE (ev_recent_view, EV_TYPE_RECENT_VIEW, EvRecentViewPrivate);
 	ev_recent_view->priv->recent_manager = gtk_recent_manager_get_default ();
 	ev_recent_view->priv->list_store = gtk_list_store_new (11,
-	                                                     G_TYPE_STRING,
-	                                                     G_TYPE_STRING,
-	                                                     G_TYPE_STRING,
-	                                                     G_TYPE_STRING,
-	                                                     GDK_TYPE_PIXBUF,
-	                                                     G_TYPE_LONG,
-	                                                     G_TYPE_BOOLEAN,
-	                                                     EV_TYPE_JOB,
-	                                                     G_TYPE_BOOLEAN,
-	                                                     EV_TYPE_DOCUMENT,
-	                                                     EV_TYPE_METADATA);
+	                                                       G_TYPE_STRING,
+	                                                       G_TYPE_STRING,
+	                                                       G_TYPE_STRING,
+	                                                       G_TYPE_STRING,
+	                                                       GDK_TYPE_PIXBUF,
+	                                                       G_TYPE_LONG,
+	                                                       G_TYPE_BOOLEAN,
+	                                                       EV_TYPE_JOB,
+	                                                       G_TYPE_BOOLEAN,
+	                                                       EV_TYPE_DOCUMENT,
+	                                                       EV_TYPE_METADATA);
 	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE (ev_recent_view->priv->list_store),
 	                                      GD_MAIN_COLUMN_MTIME,
 	                                      GTK_SORT_DESCENDING);
@@ -572,7 +574,7 @@ ev_recent_view_init (EvRecentView *ev_recent_view)
 	g_signal_connect_swapped (ev_recent_view->priv->recent_manager,
 	                          "changed",
 	                          G_CALLBACK (ev_recent_view_refresh),
-				  ev_recent_view);
+	                          ev_recent_view);
 }
 
 static void
@@ -607,4 +609,3 @@ ev_recent_view_new (void)
 
 	return ev_recent_view;
 }
-   
