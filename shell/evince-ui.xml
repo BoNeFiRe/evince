@@ -2,9 +2,6 @@
   <popup name="ActionMenu" accelerators="true">
     <menuitem name="FileOpenMenu" action="FileOpen"/>
     <menuitem name="FileOpenCopyMenu" action="FileOpenCopy"/>
-    <menu name="RecentFilesMenu" action="RecentFiles">
-      <placeholder name="RecentFiles"/>
-    </menu>
     <menuitem name="FileSaveAsMenu" action="FileSaveAs"/>
     <menuitem name="FileSendToMenu" action="FileSendTo"/>
     <menuitem name="FileOpenContainingFolderMenu" action="FileOpenContainingFolder"/>

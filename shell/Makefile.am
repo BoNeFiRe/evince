@@ -47,8 +47,6 @@ evince_SOURCES=				\
 	ev-properties-fonts.h		\
 	ev-properties-license.c		\
 	ev-properties-license.h		\
-	ev-open-recent-action.c		\
-	ev-open-recent-action.h		\
 	ev-recent-view.c                \
 	ev-recent-view.h                \
 	ev-toolbar.c			\
