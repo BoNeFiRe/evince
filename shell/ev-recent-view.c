@@ -339,15 +339,10 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 
 	document = job_load->parent.document;
 	iter = (GtkTreeIter *) g_object_get_data (G_OBJECT (job_load), "tree_iter");
-	gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
-	                    iter,
-	                    EV_RECENT_VIEW_METADATA_COLUMN, &metadata,
-	                    -1);
 
 	if (document) {
 		EvJob           *job_thumbnail;
 		EvDocumentModel *model;
-		EvDocumentInfo  *info;
 		gdouble          height;
 		gdouble          width;
 		gint             page;
@@ -355,7 +350,6 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 
 		model = ev_document_model_new_with_document (document);
 		page = ev_document_model_get_page (model);
-		info = ev_document_get_info (document);
 
 		ev_document_get_page_size (document, page, &width, &height);
 
@@ -378,7 +372,6 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 
 		gtk_list_store_set (priv->list_store,
 				    iter,
-		                    GD_MAIN_COLUMN_SECONDARY_TEXT, info->author,
 				    EV_RECENT_VIEW_THUMBNAILED_COLUMN, FALSE,
 				    EV_RECENT_VIEW_JOB_COLUMN, job_thumbnail,
 		                    EV_RECENT_VIEW_DOCUMENT_COLUMN, document,
@@ -386,15 +379,15 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 
 		ev_job_scheduler_push_job (EV_JOB (job_thumbnail), EV_JOB_PRIORITY_HIGH);
 
-		if (metadata) { 
-			ev_metadata_set_string (metadata, "author", info->author == NULL ? "" : info->author);
-			g_object_unref (metadata);
-		}
-
 		g_object_unref (model);
 		g_object_unref (job_thumbnail);
 
 	} else {
+		gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
+		                    iter,
+		                    EV_RECENT_VIEW_METADATA_COLUMN, &metadata,
+		                    -1);
+
 		gtk_list_store_set (priv->list_store,
 				    iter,
 				    EV_RECENT_VIEW_THUMBNAILED_COLUMN, TRUE,
@@ -403,7 +396,6 @@ document_load_job_completed_callback (EvJobLoad   *job_load,
 		if (metadata) {
 			GdkPixbuf *thumbnail;
 
-			ev_metadata_set_string (metadata, "author", "");
 			gtk_tree_model_get (GTK_TREE_MODEL (priv->list_store),
 				            iter,
 				            GD_MAIN_COLUMN_ICON, &thumbnail,
@@ -440,7 +432,6 @@ ev_recent_view_refresh (EvRecentView *ev_recent_view)
 		const gchar   *name;
 		const gchar   *uri;
 		gchar         *thumbnail_path;
-		gchar         *author;
 		GtkRecentInfo *info;
 		GdkPixbuf     *thumbnail;
 		GtkTreeIter    iter;
@@ -462,7 +453,6 @@ ev_recent_view_refresh (EvRecentView *ev_recent_view)
 			
 			metadata = ev_metadata_new (file);
 			if (metadata_is_stale (metadata, file) || 
-			    !ev_metadata_get_string (metadata, "author", &author) ||
 			    !ev_metadata_get_string (metadata, "thumbnail-path", &thumbnail_path))
 				goto load_document;
 
@@ -473,7 +463,6 @@ ev_recent_view_refresh (EvRecentView *ev_recent_view)
 
 		load_document:
 
-			author = "";
 			thumbnail = gtk_recent_info_get_icon (info, ICON_VIEW_SIZE);
 			job_load = ev_job_load_new (uri);
 			g_signal_connect (job_load, "finished",
@@ -488,7 +477,7 @@ ev_recent_view_refresh (EvRecentView *ev_recent_view)
 		                    GD_MAIN_COLUMN_ID, _("id"),
 		                    GD_MAIN_COLUMN_URI, uri,
 		                    GD_MAIN_COLUMN_PRIMARY_TEXT, name,
-		                    GD_MAIN_COLUMN_SECONDARY_TEXT, author,
+		                    GD_MAIN_COLUMN_SECONDARY_TEXT, NULL,
 		                    GD_MAIN_COLUMN_ICON, thumbnail,
 		                    GD_MAIN_COLUMN_MTIME, access_time,
 		                    GD_MAIN_COLUMN_SELECTED, FALSE,
